@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { MapPin, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Hospital = {
+export type Hospital = {
   name: string;
   address: string;
   location: {

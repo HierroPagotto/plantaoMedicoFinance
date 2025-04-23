@@ -2,7 +2,7 @@
 import { AppShell } from '@/components/layout/AppShell';
 import { ShiftCard, type ShiftProps } from '@/components/shifts/ShiftCard';
 import { Button } from '@/components/ui/button';
-import { Calendar, Filter, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Filter, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { addDays, addMonths, subDays, subMonths } from 'date-fns';
@@ -18,14 +18,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { DateRange } from 'react-day-picker';
 
 type FilterOptions = {
   status: string;
   specialty: string;
-  dateRange: Date[] | undefined;
+  dateRange: DateRange | undefined;
   search: string;
 };
 
@@ -172,10 +173,10 @@ const Shifts = () => {
     if (filters.specialty !== 'all' && shift.specialty !== filters.specialty) return false;
     
     // Filter by date range
-    if (filters.dateRange && filters.dateRange.length === 2) {
+    if (filters.dateRange && filters.dateRange.from && filters.dateRange.to) {
       const shiftDate = new Date(shift.date);
-      const [start, end] = filters.dateRange;
-      if (shiftDate < start || shiftDate > end) return false;
+      const { from, to } = filters.dateRange;
+      if (shiftDate < from || shiftDate > to) return false;
     }
     
     // Filter by search text (hospital name or address)
@@ -256,17 +257,17 @@ const Shifts = () => {
                     !filters.dateRange && "text-muted-foreground"
                   )}
                 >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {filters.dateRange?.length === 2
-                    ? `${filters.dateRange[0].toLocaleDateString()} - ${filters.dateRange[1].toLocaleDateString()}`
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {filters.dateRange?.from && filters.dateRange?.to
+                    ? `${filters.dateRange.from.toLocaleDateString()} - ${filters.dateRange.to.toLocaleDateString()}`
                     : "Selecionar período"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
+                <Calendar
                   mode="range"
                   selected={filters.dateRange}
-                  onSelect={(dates) => setFilters({ ...filters, dateRange: dates })}
+                  onSelect={(range: DateRange | undefined) => setFilters({ ...filters, dateRange: range })}
                   numberOfMonths={2}
                   className={cn("p-3 pointer-events-auto")}
                 />

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -32,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { HospitalSearch } from './HospitalSearch';
+import { HospitalSearch, type Hospital } from './HospitalSearch';
 
 const specialties = [
   'Cardiologia', 
@@ -232,7 +231,6 @@ export function ShiftForm() {
                     placeholder="0,00"
                     {...field}
                     onChange={(e) => {
-                      // Format as currency
                       const value = e.target.value
                         .replace(/\D/g, '')
                         .replace(/(\d)(\d{2})$/, '$1,$2')
