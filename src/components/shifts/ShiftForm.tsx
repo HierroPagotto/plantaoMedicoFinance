@@ -207,8 +207,10 @@ export function ShiftForm() {
                 <FormLabel>Hospital / Clínica</FormLabel>
                 <FormControl>
                   <HospitalSearch
-                    value={field.value}
-                    onChange={field.onChange}
+                    value={field.value as Hospital}
+                    onChange={(hospital: Hospital) => {
+                      field.onChange(hospital);
+                    }}
                   />
                 </FormControl>
                 <FormDescription>
