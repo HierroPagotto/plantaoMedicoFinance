@@ -1,4 +1,3 @@
-
 import { AppShell } from '@/components/layout/AppShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { FinancialChart } from '@/components/dashboard/FinancialChart';
@@ -6,7 +5,7 @@ import { NextPaymentCard } from '@/components/dashboard/NextPaymentCard';
 import { MapPreview } from '@/components/dashboard/MapPreview';
 import { ShiftCalendar } from '@/components/dashboard/ShiftCalendar';
 import { ShiftTable } from '@/components/dashboard/ShiftTable';
-import { Calendar, Clock, DollarSign, MapPin } from 'lucide-react';
+import { Calendar, Clock, DollarSign, MapPin, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -15,8 +14,13 @@ import { addDays, addMonths, subDays, subMonths } from 'date-fns';
 
 const Dashboard = () => {
   const [shifts, setShifts] = useState<ShiftProps[]>([]);
+  const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
+    // Verifica se o perfil médico existe no localStorage
+    const doctorProfile = localStorage.getItem('doctorProfile');
+    setHasProfile(!!doctorProfile);
+
     // Mock data for demonstration
     const mockShifts: ShiftProps[] = [
       {
@@ -103,10 +107,40 @@ const Dashboard = () => {
     <AppShell>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <Button asChild>
-          <Link to="/shifts/new">Novo plantão</Link>
-        </Button>
+        <div className="flex gap-2">
+          {hasProfile ? (
+            <Button asChild variant="outline">
+              <Link to="/doctor-profile" className="flex items-center gap-2">
+                <User size={16} />
+                Ver Perfil
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild variant="outline">
+              <Link to="/doctor-registration" className="flex items-center gap-2">
+                <User size={16} />
+                Cadastrar Perfil
+              </Link>
+            </Button>
+          )}
+          <Button asChild>
+            <Link to="/shifts/new">Novo plantão</Link>
+          </Button>
+        </div>
       </div>
+
+      {/* Alerta de perfil incompleto */}
+      {!hasProfile && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <h3 className="font-medium text-amber-800">Perfil médico incompleto</h3>
+          <p className="text-amber-700 mt-1">
+            Complete seu perfil médico para aumentar suas chances de encontrar plantões compatíveis.
+          </p>
+          <Button asChild variant="outline" className="mt-2 bg-amber-100 border-amber-300 hover:bg-amber-200">
+            <Link to="/doctor-registration">Completar Perfil</Link>
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard

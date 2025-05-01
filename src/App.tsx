@@ -14,6 +14,7 @@ import Finance from "./pages/Finance";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import DoctorRegistration from "./pages/DoctorRegistration";
+import DoctorProfile from "./pages/DoctorProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/doctor-registration" element={<DoctorRegistration />} />
+          <Route path="/doctor-profile" element={<DoctorProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
