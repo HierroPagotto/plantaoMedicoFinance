@@ -13,6 +13,7 @@ import NewShift from "./pages/NewShift";
 import Finance from "./pages/Finance";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import DoctorRegistration from "./pages/DoctorRegistration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/finance" element={<Finance />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/doctor-registration" element={<DoctorRegistration />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
