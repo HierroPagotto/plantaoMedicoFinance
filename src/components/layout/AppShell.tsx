@@ -52,13 +52,23 @@ export const AppShell = ({ children }: AppShellProps) => {
           <SidebarHeader className="border-b border-border">
             <div className="flex items-center p-2">
               {sidebarOpen ? (
-                <div className="flex items-center">
-                  <img src="/logo.png" alt="MedSinc Logo" className="h-10 mr-2" />
-                  <h1 className="font-bold text-xl text-medical-teal">MedSinc</h1>
+                <div className="flex items-center justify-center w-full">
+                  <Link to="/dashboard" className="flex items-center">
+                    <img 
+                      src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png" 
+                      alt="MedSinc Logo" 
+                      className="h-10 w-auto object-contain" 
+                    />
+                    <h1 className="font-bold text-xl text-medical-teal ml-2">MedSinc</h1>
+                  </Link>
                 </div>
               ) : (
-                <div className="w-10 h-10">
-                  <img src="/logo.png" alt="MedSinc Logo" className="h-10" />
+                <div className="w-10 h-10 flex items-center justify-center">
+                  <img 
+                    src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png" 
+                    alt="MedSinc Logo" 
+                    className="h-8 w-auto object-contain"
+                  />
                 </div>
               )}
             </div>
