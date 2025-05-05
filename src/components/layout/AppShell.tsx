@@ -52,12 +52,13 @@ export const AppShell = ({ children }: AppShellProps) => {
           <SidebarHeader className="border-b border-border">
             <div className="flex items-center p-2">
               {sidebarOpen ? (
-                <div>
-                  <h1 className="font-bold text-xl text-primary">Plantão Médico</h1>
+                <div className="flex items-center">
+                  <img src="/logo.png" alt="MedSinc Logo" className="h-10 mr-2" />
+                  <h1 className="font-bold text-xl text-medical-teal">MedSinc</h1>
                 </div>
               ) : (
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">PM</span>
+                <div className="w-10 h-10">
+                  <img src="/logo.png" alt="MedSinc Logo" className="h-10" />
                 </div>
               )}
             </div>
@@ -112,7 +113,7 @@ export const AppShell = ({ children }: AppShellProps) => {
         </Sidebar>
         
         <SidebarInset>
-          <Header />
+          <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 overflow-auto p-4 md:p-6">
             {children}
           </main>

@@ -33,7 +33,7 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
       <div className="ml-auto flex items-center space-x-4">
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          <span className="absolute top-0 right-0 h-2 w-2 bg-medical-orange rounded-full"></span>
+          <span className="absolute top-0 right-0 h-2 w-2 bg-medical-teal rounded-full"></span>
         </Button>
       </div>
     </header>

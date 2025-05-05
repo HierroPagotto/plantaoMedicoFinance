@@ -16,16 +16,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 199 95% 48%;  /* Medical Blue */
+    --primary: 175 70% 29%;  /* MedSinc Teal */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 162 78% 67%;  /* Mint Green */
+    --secondary: 120 27% 62%;  /* MedSinc Green */
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 262 83% 63%;  /* Purple */
+    --accent: 175 52% 36%;  /* MedSinc Accent */
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -33,18 +33,18 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 199 95% 48%;
+    --ring: 175 70% 29%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 199 95% 48%;
+    --sidebar-primary: 175 70% 29%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 199 95% 48%;
+    --sidebar-ring: 175 70% 29%;
   }
 
   .dark {
@@ -57,16 +57,16 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 199 95% 48%;
+    --primary: 175 70% 29%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
-    --secondary: 162 78% 67%;
+    --secondary: 120 27% 62%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 262 83% 63%;
+    --accent: 175 52% 36%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -78,7 +78,7 @@
     
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 199 95% 48%;
+    --sidebar-primary: 175 70% 29%;
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 217.2 32.6% 17.5%;
     --sidebar-accent-foreground: 210 40% 98%;

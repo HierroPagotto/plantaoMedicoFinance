@@ -19,7 +19,8 @@ const Index = () => {
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Redirecionando...</h1>
+        <img src="/logo.png" alt="MedSinc Logo" className="h-20 mx-auto mb-4" />
+        <h1 className="text-2xl font-bold text-medical-teal">MedSinc</h1>
         <p className="text-muted-foreground mt-2">Aguarde, você será redirecionado para o dashboard.</p>
       </div>
     </div>

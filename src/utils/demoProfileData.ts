@@ -8,7 +8,7 @@ export const createDemoProfile = () => {
       photoUrl: "https://randomuser.me/api/portraits/men/42.jpg",
       crm: "123456",
       crmState: "SP",
-      graduationYear: "2010",
+      graduationYear: 2010, // Corrigido para number
       city: "São Paulo",
       phone: "(11) 98765-4321",
       email: "joao.silva@exemplo.com.br"

@@ -67,10 +67,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				medical: {
-					blue: '#0EA5E9',
-					green: '#6EE7B7',
-					purple: '#8B5CF6',
-					orange: '#F97316'
+					teal: '#147F7F',       // Cor teal escura do logo
+					tealLight: '#28A7A7',  // Versão mais clara do teal
+					green: '#85C17E',      // Verde médio do logo
+					greenLight: '#B4D89B', // Verde claro do logo
+					accent: '#2D8C8C',     // Para destaques
 				}
 			},
 			borderRadius: {
