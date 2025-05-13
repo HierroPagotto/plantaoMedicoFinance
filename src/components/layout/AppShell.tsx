@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { 
+import { useEffect, useState } from 'react';
+import {
   SidebarProvider,
   Sidebar,
   SidebarContent,
@@ -25,13 +25,27 @@ interface AppShellProps {
 export const AppShell = ({ children }: AppShellProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
-  
-  // Mock user data
-  const [user] = useState({
-    name: 'Dr. João Silva',
-    specialty: 'Cardiologia'
+
+  const [user, setUser] = useState<{ name: string; specialty: string }>({
+    name: 'Carregando...',
+    specialty: '...'
   });
-  
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('userData');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUser({
+          name: parsed.name || 'Desconhecido(a)',
+          specialty: parsed.main_specialty || '...'
+        });
+      } catch {
+        console.error('Erro ao carregar os dados do usuário');
+      }
+    }
+  }, []);
+
   const links = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Plantões', href: '/shifts', icon: Calendar },
@@ -47,26 +61,26 @@ export const AppShell = ({ children }: AppShellProps) => {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen w-screen bg-background">
         <Sidebar>
           <SidebarHeader className="border-b border-border">
             <div className="flex items-center p-2">
               {sidebarOpen ? (
                 <div className="flex items-center justify-center w-full">
                   <Link to="/dashboard" className="flex items-center">
-                    <img 
-                      src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png" 
-                      alt="MedSinc Logo" 
-                      className="h-10 w-auto object-contain" 
+                    <img
+                      src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png"
+                      alt="MedSinc Logo"
+                      className="h-10 w-auto object-contain"
                     />
                     <h1 className="font-bold text-xl text-medical-teal ml-2">MedSinc</h1>
                   </Link>
                 </div>
               ) : (
                 <div className="w-10 h-10 flex items-center justify-center">
-                  <img 
-                    src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png" 
-                    alt="MedSinc Logo" 
+                  <img
+                    src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png"
+                    alt="MedSinc Logo"
                     className="h-8 w-auto object-contain"
                   />
                 </div>
@@ -112,16 +126,16 @@ export const AppShell = ({ children }: AppShellProps) => {
               className="w-full justify-start text-muted-foreground hover:text-foreground"
               asChild
             >
-              <Link to="/login">
+              <Link to="/logout">
                 <LogOut className="h-5 w-5 mr-3" />
                 <span>Sair</span>
               </Link>
             </Button>
           </SidebarFooter>
-          
+
           <SidebarRail />
         </Sidebar>
-        
+
         <SidebarInset>
           <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 overflow-auto p-4 md:p-6">

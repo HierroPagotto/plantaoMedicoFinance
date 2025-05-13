@@ -4,30 +4,31 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { format, isFuture } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ShiftProps } from '@/components/shifts/ShiftCard';
 import { useState, useEffect } from 'react';
 
-interface NextPaymentCardProps {
-  shifts: ShiftProps[];
-}
-
-export function NextPaymentCard({ shifts }: NextPaymentCardProps) {
-  const [nextPayment, setNextPayment] = useState<ShiftProps | null>(null);
+export function NextPaymentCard({ shifts }: any) {
+  const [nextPayment, setNextPayment] = useState<any | null>(null);
 
   useEffect(() => {
-    // Filter for shifts that are scheduled to be paid in the future
-    // And sort by payment date (ascending)
     const upcomingPayments = shifts
-      .filter(shift => 
-        (shift.status === 'completed' || shift.status === 'scheduled') &&
-        isFuture(shift.paymentDate)
-      )
-      .sort((a, b) => a.paymentDate.getTime() - b.paymentDate.getTime());
+      .filter(shift => {
+        const paymentDate = new Date(shift.payment_date);
+        return (
+          (shift.status === 'completed' || shift.status === 'scheduled') &&
+          isFuture(paymentDate)
+        );
+      })
+      .sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
 
     if (upcomingPayments.length > 0) {
-      setNextPayment(upcomingPayments[0]);
+      const next = upcomingPayments[0];
+      setNextPayment({
+        ...next,
+        paymentDate: new Date(next.payment_date),
+      });
     }
   }, [shifts]);
+
 
   if (!nextPayment) {
     return (

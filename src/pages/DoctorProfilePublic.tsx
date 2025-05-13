@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppShell } from "@/components/layout/AppShell";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,11 +15,13 @@ import {
   Award,
   Briefcase,
   FileText,
-  Edit,
   Shield,
   Info,
   Star,
+  Printer,
 } from "lucide-react";
+import api from "@/lib/api";
+import PrintButton from "@/components/ui/print-button";
 
 interface UserData {
   accepts_fixed_shifts: boolean;
@@ -58,24 +59,35 @@ interface UserData {
   years_of_experience: number | null;
 }
 
-export default function DoctorProfile() {
+export default function DoctorProfilePublic() {
+  const { id } = useParams();
   const [doctor, setDoctor] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const doctorData = localStorage.getItem("userData");
-    if (doctorData) {
+    const loadDoctor = async () => {
+      setLoading(true);
       try {
-        const parsedData = JSON.parse(doctorData);
-        setDoctor(parsedData);
+        const doctorData = await api.getDoctor(id);
+
+        if (doctorData) {
+          const parsedData = typeof doctorData === 'string'
+            ? JSON.parse(doctorData)
+            : doctorData;
+
+          setDoctor(parsedData);
+        } else {
+          toast.error("Perfil médico não encontrado");
+        }
       } catch (error) {
-        toast.error("Erro ao carregar");
+        toast.error("Erro ao carregar perfil médico");
+      } finally {
+        setLoading(false);
       }
-    } else {
-      toast.error("Perfil médico não encontrado");
-    }
-    setLoading(false);
-  }, []);
+    };
+
+    loadDoctor();
+  }, [id]);
 
   const getStateName = (stateCode: string | null) => {
     if (!stateCode) return "Não informado";
@@ -107,27 +119,24 @@ export default function DoctorProfile() {
 
   if (loading) {
     return (
-      <AppShell>
+      <>
         <div className="flex items-center justify-center h-full">
           <div className="animate-pulse">Carregando perfil...</div>
         </div>
-      </AppShell>
+      </>
     );
   }
 
   if (!doctor) {
     return (
-      <AppShell>
+      <>
         <div className="container mx-auto py-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Perfil não encontrado</h1>
-            <p className="mb-6">Você ainda não cadastrou seu perfil médico.</p>
-            <Button asChild>
-              <Link to="/doctor-registration">Cadastrar perfil médico</Link>
-            </Button>
+            <p className="mb-6">O perfil ainda não está cadastrado.</p>
           </div>
         </div>
-      </AppShell>
+      </>
     );
   }
 
@@ -140,16 +149,11 @@ export default function DoctorProfile() {
   const profileUrl = `${window.location.origin}/doctor-profile/${doctor.id}`;
 
   return (
-    <AppShell>
-      <div className="container mx-auto py-6">
+    <>
+      <div className="container mx-auto py-6 print-container">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Perfil Médico</h1>
-          <Button asChild variant="outline">
-            <Link to="/doctor-registration" className="flex items-center gap-2">
-              <Edit size={16} />
-              Editar perfil
-            </Link>
-          </Button>
+          <PrintButton />
         </div>
 
         <Card className="mb-6">
@@ -474,7 +478,7 @@ export default function DoctorProfile() {
                     <span className="font-medium text-green-700">Perfil completo</span>
                   </div>
                   <p className="mt-2 text-sm text-green-600">
-                    Seu perfil está completo e pronto para ser encontrado por hospitais e instituições.
+                    O perfil está completo e pronto para ser encontrado por hospitais e instituições.
                   </p>
                 </div>
 
@@ -518,13 +522,7 @@ export default function DoctorProfile() {
             </Card>
           </div>
         </div>
-
-        <div className="mt-6 flex justify-end">
-          <Button asChild variant="outline">
-            <Link to="/dashboard">Voltar para o Dashboard</Link>
-          </Button>
-        </div>
       </div>
-    </AppShell>
+    </>
   );
 }

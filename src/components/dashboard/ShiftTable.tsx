@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -19,10 +18,34 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { type ShiftProps, type ShiftStatus } from '@/components/shifts/ShiftCard';
+
+interface Hospital {
+  id: number;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+}
+
+interface Shift {
+  id: number;
+  doctor_id: number;
+  hospital_id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  value: number;
+  status: 'scheduled' | 'completed' | 'paid' | 'canceled';
+  payment_date: string;
+  specialty: string;
+  hospital: Hospital;
+  created_at: string;
+  updated_at: string;
+}
 
 interface ShiftTableProps {
-  shifts: ShiftProps[];
+  shifts: Shift[];
 }
 
 const statusConfig = {
@@ -33,10 +56,10 @@ const statusConfig = {
 };
 
 export function ShiftTable({ shifts }: ShiftTableProps) {
-  const [filter, setFilter] = useState<ShiftStatus | 'all'>('all');
-  
-  const filteredShifts = filter === 'all' 
-    ? shifts 
+  const [filter, setFilter] = useState<Shift['status'] | 'all'>('all');
+
+  const filteredShifts = filter === 'all'
+    ? shifts
     : shifts.filter(shift => shift.status === filter);
 
   return (
@@ -45,7 +68,7 @@ export function ShiftTable({ shifts }: ShiftTableProps) {
         <CardTitle className="text-base">Últimos plantões</CardTitle>
         <Select
           defaultValue="all"
-          onValueChange={(value: ShiftStatus | 'all') => setFilter(value)}
+          onValueChange={(value: Shift['status'] | 'all') => setFilter(value)}
         >
           <SelectTrigger className="h-8 w-[180px]">
             <SelectValue placeholder="Filtrar por status" />
@@ -78,28 +101,22 @@ export function ShiftTable({ shifts }: ShiftTableProps) {
                   <TableRow key={shift.id}>
                     <TableCell>
                       <div className="font-medium">
-                        {format(shift.date, "dd MMM yyyy", { locale: ptBR })}
+                        {format(new Date(shift.date), "dd MMM yyyy", { locale: ptBR })}
                       </div>
                       <div className="text-xs text-muted-foreground md:hidden">
-                        {shift.startTime} - {shift.endTime}
+                        {shift.start_time} - {shift.end_time}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {shift.hospital.name}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      R$ {shift.value}
-                    </TableCell>
+                    <TableCell>{shift.hospital.name}</TableCell>
+                    <TableCell className="font-medium">R$ {shift.value}</TableCell>
                     <TableCell>
                       <Badge className={statusConfig[shift.status].color}>
                         {statusConfig[shift.status].label}
                       </Badge>
                     </TableCell>
+                    <TableCell className="hidden md:table-cell">{shift.specialty}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {shift.specialty}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {format(shift.paymentDate, "dd/MM/yyyy", { locale: ptBR })}
+                      {format(new Date(shift.payment_date), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
                   </TableRow>
                 ))

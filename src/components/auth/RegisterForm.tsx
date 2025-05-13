@@ -22,9 +22,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 const specialties = [
-  'Cardiologia', 
+  'Cardiologia',
   'Clínica Médica',
   'Dermatologia',
   'Endocrinologia',
@@ -53,7 +54,7 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,24 +68,33 @@ export function RegisterForm() {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      // Simulate API call
-      console.log('Register data:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await api.register({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        main_specialty: data.specialty
+      });
+
       toast({
         title: "Conta criada com sucesso!",
         description: "Redirecionando para o dashboard...",
       });
-      
-      // Redirect to dashboard after successful registration
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
-    } catch (error) {
+
+      await api.login(data.email, data.password);
+
+      navigate('/dashboard');
+
+    } catch (error: any) {
+      let errorMessage = "Erro ao criar conta";
+
+      if (error.response) {
+        errorMessage = error.response.data.message || errorMessage;
+      }
+
       toast({
         variant: "destructive",
-        title: "Erro ao criar conta",
-        description: "Tente novamente mais tarde.",
+        title: "Erro no cadastro",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);

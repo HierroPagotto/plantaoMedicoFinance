@@ -1,4 +1,3 @@
-
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,13 +10,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from "sonner";
+import api from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 
 const specialties = [
-  'Cardiologia', 
+  'Cardiologia',
   'Clínica Médica',
   'Dermatologia',
   'Endocrinologia',
@@ -33,59 +33,133 @@ const specialties = [
   'Urologia'
 ];
 
+interface DoctorProfile {
+  id: number;
+  name: string;
+  email: string;
+  main_specialty: string;
+  created_at: string;
+  shifts_count?: number;
+}
+
 const Settings = () => {
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState({
-    name: 'Dr. João Silva',
-    email: 'joao.silva@exemplo.com',
-    specialty: 'Cardiologia',
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<DoctorProfile>({
+    id: 0,
+    name: '',
+    email: '',
+    main_specialty: '',
+    created_at: '',
+    shifts_count: 0
   });
-  
-  const [preferences, setPreferences] = useState({
-    notifications: {
-      email: true,
-      push: true,
-      reminders: true,
-    },
-    export: {
-      includePaid: true,
-      includePending: true,
-    }
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
-  
-  const handleProfileChange = (field: string, value: string) => {
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await api.getMyData();
+        setProfile(response);
+      } catch (error) {
+        console.error('Erro ao buscar perfil:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleProfileChange = (field: keyof DoctorProfile, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
-  
-  const handleNotificationChange = (field: string, value: boolean) => {
-    setPreferences(prev => ({
-      ...prev,
-      notifications: {
-        ...prev.notifications,
-        [field]: value,
-      }
-    }));
+
+  const handlePasswordChange = (field: string, value: string) => {
+    setPasswordData(prev => ({ ...prev, [field]: value }));
   };
-  
-  const handleExportChange = (field: string, value: boolean) => {
-    setPreferences(prev => ({
-      ...prev,
-      export: {
-        ...prev.export,
-        [field]: value,
+
+  const saveChanges = async () => {
+    const isChangingPassword = passwordData.newPassword || passwordData.confirmPassword;
+
+    if (isChangingPassword) {
+      if (!passwordData.currentPassword) {
+        toast.error("Por favor, informe sua senha atual");
+        return;
       }
-    }));
-  };
-  
-  const saveChanges = () => {
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        toast.error("As novas senhas não coincidem");
+        return;
+      }
+
+      if (passwordData.newPassword.length < 6) {
+        toast.error("A nova senha deve ter pelo menos 6 caracteres");
+        return;
+      }
+    }
+
     setSaving(true);
-    
-    // Simulate saving data
-    setTimeout(() => {
+
+    try {
+      const updateData = {
+        name: profile.name,
+        main_specialty: profile.main_specialty
+      };
+
+      await api.updateMyData(updateData);
+
+      if (isChangingPassword) {
+        await api.updateMyData({
+          password: passwordData.newPassword
+        });
+        toast.success("Senha alterada com sucesso!");
+
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      }
+
+      toast.success("Perfil atualizado com sucesso!");
+
+      if (isChangingPassword) {
+        await api.logout();
+        navigate('/login', { replace: true });
+        return;
+      }
+    } catch (error: any) {
+      toast.error("Erro ao atualizar perfil");
+    } finally {
       setSaving(false);
-      toast.success("Configurações salvas com sucesso!");
-    }, 1000);
+    }
   };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC'
+    }).replace(/^./, c => c.toUpperCase());
+  };
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center h-64">
+          <p>Carregando perfil...</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -95,7 +169,6 @@ const Settings = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          {/* Profile Settings */}
           <Card>
             <CardHeader>
               <CardTitle>Perfil</CardTitle>
@@ -119,14 +192,14 @@ const Settings = () => {
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={(e) => handleProfileChange('email', e.target.value)}
+                    disabled
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="specialty">Especialidade principal</Label>
                   <Select
-                    value={profile.specialty}
-                    onValueChange={(value) => handleProfileChange('specialty', value)}
+                    value={profile.main_specialty}
+                    onValueChange={(value) => handleProfileChange('main_specialty', value)}
                   >
                     <SelectTrigger id="specialty">
                       <SelectValue placeholder="Selecione sua especialidade" />
@@ -141,123 +214,39 @@ const Settings = () => {
                   </Select>
                 </div>
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Senha atual</Label>
-                <Input id="currentPassword" type="password" />
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                  placeholder="Informe para alterar sua senha"
+                />
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">Nova senha</Label>
-                  <Input id="newPassword" type="password" />
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
-                  <Input id="confirmPassword" type="password" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Notification Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Notificações</CardTitle>
-              <CardDescription>
-                Configure como deseja receber lembretes e avisos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="emailNotifications" className="text-base">Notificações por email</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receba lembretes de plantões e pagamentos por email
-                    </p>
-                  </div>
-                  <Switch
-                    id="emailNotifications"
-                    checked={preferences.notifications.email}
-                    onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="pushNotifications" className="text-base">Notificações push</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receba notificações no seu navegador ou dispositivo móvel
-                    </p>
-                  </div>
-                  <Switch
-                    id="pushNotifications"
-                    checked={preferences.notifications.push}
-                    onCheckedChange={(checked) => handleNotificationChange('push', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="reminderNotifications" className="text-base">Lembretes de plantão</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receba lembretes um dia antes dos seus plantões
-                    </p>
-                  </div>
-                  <Switch
-                    id="reminderNotifications"
-                    checked={preferences.notifications.reminders}
-                    onCheckedChange={(checked) => handleNotificationChange('reminders', checked)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Export Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Exportação de dados</CardTitle>
-              <CardDescription>
-                Configure os padrões para exportações de relatórios
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="includePaid" className="text-base">Incluir plantões pagos</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Incluir plantões que já foram pagos nos relatórios
-                    </p>
-                  </div>
-                  <Switch
-                    id="includePaid"
-                    checked={preferences.export.includePaid}
-                    onCheckedChange={(checked) => handleExportChange('includePaid', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="includePending" className="text-base">Incluir plantões pendentes</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Incluir plantões com pagamento pendente nos relatórios
-                    </p>
-                  </div>
-                  <Switch
-                    id="includePending"
-                    checked={preferences.export.includePending}
-                    onCheckedChange={(checked) => handleExportChange('includePending', checked)}
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                    placeholder="Repita a nova senha"
                   />
                 </div>
               </div>
@@ -266,7 +255,6 @@ const Settings = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Account Summary */}
           <Card>
             <CardHeader>
               <CardTitle>Sua conta</CardTitle>
@@ -279,39 +267,35 @@ const Settings = () => {
                   </div>
                   <div>
                     <h3 className="font-medium">{profile.name}</h3>
-                    <p className="text-sm text-muted-foreground">{profile.specialty}</p>
+                    <p className="text-sm text-muted-foreground">{profile.main_specialty}</p>
                     <p className="text-sm text-muted-foreground">{profile.email}</p>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <p className="text-sm">Membro desde</p>
-                  <p className="font-medium">Abril 2023</p>
+                  <p className="font-medium">{formatDate(profile.created_at)}</p>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <p className="text-sm">Plantões registrados</p>
-                  <p className="font-medium">42</p>
+                  <p className="font-medium">{profile.shifts_count || 0}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Actions */}
           <div className="space-y-4">
             <Button className="w-full" onClick={saveChanges} disabled={saving}>
               {saving ? "Salvando..." : "Salvar alterações"}
             </Button>
-            <Button variant="outline" className="w-full">
-              Exportar todos os dados
-            </Button>
-            <Button variant="destructive" className="w-full">
+            {/*<Button variant="destructive" className="w-full">
               Excluir minha conta
-            </Button>
+            </Button>*/}
           </div>
         </div>
       </div>

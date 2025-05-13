@@ -17,19 +17,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { 
-  brazilianStates, 
-  medicalSpecialties, 
-  procedures, 
-  shiftTypes, 
-  periods, 
+import {
+  brazilianStates,
+  medicalSpecialties,
+  procedures,
+  shiftTypes,
+  periods,
   weekDays,
   Doctor
 } from "@/types/doctor";
 import { supabase } from "@/integrations/supabase/client";
-import { 
+import {
   User,
   Mail,
   Phone,
@@ -43,6 +43,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { api } from "@/lib/api";
+import { transformApiToForm, transformFormToApi } from "@/lib/utils";
 
 const phoneRegex = /^\(\d{2}\) \d{5}-\d{4}$/;
 const crmRegex = /^\d{4,10}$/;
@@ -101,7 +103,7 @@ export default function DoctorRegistration() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cities, setCities] = useState<string[]>([]);
   const [newCity, setNewCity] = useState("");
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -152,13 +154,12 @@ export default function DoctorRegistration() {
   });
 
   const watchCitiesState = form.watch("location.state");
-  
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setPhotoFile(file);
-      
-      // Create preview
+
       const reader = new FileReader();
       reader.onload = () => {
         setPhotoPreview(reader.result as string);
@@ -166,14 +167,14 @@ export default function DoctorRegistration() {
       reader.readAsDataURL(file);
     }
   };
-  
+
   // Format phone with mask
   const formatPhone = (value: string) => {
     if (!value) return "";
 
     // Remove todos os caracteres não numéricos
     value = value.replace(/\D/g, "");
-    
+
     // Aplica a máscara (XX) XXXXX-XXXX
     if (value.length <= 2) {
       return value.replace(/^(\d{0,2})/, "($1");
@@ -198,33 +199,38 @@ export default function DoctorRegistration() {
     form.setValue("location.citiesOfWork", updatedCities);
   };
 
+  useEffect(() => {
+    const loadDoctorData = async () => {
+      try {
+        const doctorData = await api.getMyData();
+        const formData = transformApiToForm(doctorData);
+
+        if (formData.personalInfo.photoUrl) {
+          setPhotoPreview(formData.personalInfo.photoUrl);
+        }
+
+        setCities(formData.location.citiesOfWork);
+
+        form.reset(formData);
+      } catch (error) {
+        toast.error("Erro ao carregar dados do perfil");
+      }
+    };
+
+    loadDoctorData();
+  }, [form]);
+
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    
+
     try {
-      // Exemplo: upload da foto para o Supabase Storage
       let photoUrl = data.personalInfo.photoUrl;
-      
+
       if (photoFile) {
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('doctors')
-          .upload(`profile-photos/${Date.now()}-${photoFile.name}`, photoFile);
-          
-        if (uploadError) {
-          throw new Error(uploadError.message);
-        }
-        
-        if (uploadData) {
-          // Você precisará construir a URL ou obter a URL pública do arquivo
-          const { data: publicUrlData } = supabase.storage
-            .from('doctors')
-            .getPublicUrl(uploadData.path);
-            
-          photoUrl = publicUrlData.publicUrl;
-        }
+        const { photo_url } = await api.uploadPhoto(photoFile);
+        photoUrl = photo_url;
       }
-      
-      // Atualiza o dado com a URL da foto
+
       const doctorData = {
         ...data,
         personalInfo: {
@@ -232,27 +238,13 @@ export default function DoctorRegistration() {
           photoUrl
         }
       };
-      
-      // Armazenar temporariamente no localStorage até que a tabela correta exista
-      localStorage.setItem('doctorProfile', JSON.stringify(doctorData));
-      
-      // Usando uma tabela que existe no esquema atual apenas para fins de demonstração
-      // No ambiente real, você deve criar a tabela "doctors" no seu projeto Supabase
-      const { error } = await supabase
-        .from('Projeto 1')
-        .insert([{ created_at: new Date().toISOString() }]);
-        
-      if (error) {
-        console.error("Erro ao salvar no banco:", error);
-        throw new Error(error.message);
-      }
-      
-      toast.success("Perfil médico salvo com sucesso! (Dados armazenados temporariamente no localStorage)");
-      
-      console.log("Perfil do médico:", doctorData);
+
+      await api.updateMyData(transformFormToApi(doctorData));
+
+      toast.success("Perfil médico atualizado com sucesso!");
     } catch (error) {
-      console.error("Erro ao salvar perfil:", error);
-      toast.error("Erro ao salvar o perfil. Por favor, tente novamente.");
+      console.error("Erro ao salvar:", error);
+      toast.error("Erro ao atualizar o perfil");
     } finally {
       setIsSubmitting(false);
     }
@@ -260,11 +252,10 @@ export default function DoctorRegistration() {
 
   return (
     <AppShell>
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto py-6 overflow-hidden">
         <h1 className="text-2xl font-bold mb-6">Cadastro de Médico Plantonista</h1>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Seção 1: Dados Pessoais */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -277,29 +268,31 @@ export default function DoctorRegistration() {
                   {photoPreview ? (
                     <AvatarImage src={photoPreview} alt="Foto do perfil" />
                   ) : (
-                    <AvatarFallback>MD</AvatarFallback>
+                    <AvatarFallback>
+                      {form.watch("personalInfo.fullName")?.charAt(0) || 'MD'}
+                    </AvatarFallback>
                   )}
                 </Avatar>
                 <div className="mt-4">
                   <Label htmlFor="photo" className="cursor-pointer bg-primary text-primary-foreground px-4 py-2 rounded-md">
                     Escolher Foto
                   </Label>
-                  <Input 
-                    id="photo" 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={handlePhotoChange} 
+                  <Input
+                    id="photo"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
                   />
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="fullName">Nome Completo *</Label>
-                <Input 
-                  id="fullName" 
-                  {...form.register("personalInfo.fullName")} 
-                  placeholder="Digite seu nome completo" 
+                <Input
+                  id="fullName"
+                  {...form.register("personalInfo.fullName")}
+                  placeholder="Digite seu nome completo"
                 />
                 {form.formState.errors.personalInfo?.fullName && (
                   <p className="text-sm text-destructive mt-1">
@@ -307,14 +300,14 @@ export default function DoctorRegistration() {
                   </p>
                 )}
               </div>
-              
+
               <div className="flex gap-4">
                 <div className="flex-1">
                   <Label htmlFor="crm">CRM *</Label>
-                  <Input 
-                    id="crm" 
-                    {...form.register("personalInfo.crm")} 
-                    placeholder="Número do CRM" 
+                  <Input
+                    id="crm"
+                    {...form.register("personalInfo.crm")}
+                    placeholder="Número do CRM"
                   />
                   {form.formState.errors.personalInfo?.crm && (
                     <p className="text-sm text-destructive mt-1">
@@ -322,14 +315,14 @@ export default function DoctorRegistration() {
                     </p>
                   )}
                 </div>
-                
+
                 <div className="w-1/3">
                   <Label htmlFor="crmState">Estado *</Label>
-                  <Controller 
+                  <Controller
                     control={form.control}
                     name="personalInfo.crmState"
                     render={({ field }) => (
-                      <Select 
+                      <Select
                         value={field.value}
                         onValueChange={field.onChange}
                       >
@@ -353,7 +346,7 @@ export default function DoctorRegistration() {
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="graduationYear">Ano de Formação *</Label>
                 <Controller
@@ -376,13 +369,13 @@ export default function DoctorRegistration() {
                   </p>
                 )}
               </div>
-              
+
               <div>
                 <Label htmlFor="city">Cidade onde mora *</Label>
-                <Input 
-                  id="city" 
-                  {...form.register("personalInfo.city")} 
-                  placeholder="Cidade atual" 
+                <Input
+                  id="city"
+                  {...form.register("personalInfo.city")}
+                  placeholder="Cidade atual"
                 />
                 {form.formState.errors.personalInfo?.city && (
                   <p className="text-sm text-destructive mt-1">
@@ -390,7 +383,7 @@ export default function DoctorRegistration() {
                   </p>
                 )}
               </div>
-              
+
               <div>
                 <Label htmlFor="phone">Telefone *</Label>
                 <Controller
@@ -411,14 +404,14 @@ export default function DoctorRegistration() {
                   </p>
                 )}
               </div>
-              
+
               <div>
                 <Label htmlFor="email">E-mail *</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  {...form.register("personalInfo.email")} 
-                  placeholder="seu@email.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  {...form.register("personalInfo.email")}
+                  placeholder="seu@email.com"
                 />
                 {form.formState.errors.personalInfo?.email && (
                   <p className="text-sm text-destructive mt-1">
@@ -429,7 +422,6 @@ export default function DoctorRegistration() {
             </CardContent>
           </Card>
 
-          {/* Seção 2: Área de Atuação */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -439,11 +431,11 @@ export default function DoctorRegistration() {
             <CardContent className="space-y-6">
               <div>
                 <Label htmlFor="mainSpecialty">Especialidade Principal *</Label>
-                <Controller 
+                <Controller
                   control={form.control}
                   name="specialties.mainSpecialty"
                   render={({ field }) => (
-                    <Select 
+                    <Select
                       value={field.value}
                       onValueChange={field.onChange}
                     >
@@ -539,7 +531,6 @@ export default function DoctorRegistration() {
             </CardContent>
           </Card>
 
-          {/* Seção 3: Disponibilidade */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -691,7 +682,6 @@ export default function DoctorRegistration() {
             </CardContent>
           </Card>
 
-          {/* Seção 4: Local de Atuação */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -701,11 +691,11 @@ export default function DoctorRegistration() {
             <CardContent className="space-y-6">
               <div>
                 <Label htmlFor="state">Estado *</Label>
-                <Controller 
+                <Controller
                   control={form.control}
                   name="location.state"
                   render={({ field }) => (
-                    <Select 
+                    <Select
                       value={field.value}
                       onValueChange={field.onChange}
                     >
@@ -732,15 +722,15 @@ export default function DoctorRegistration() {
               <div>
                 <Label>Cidades onde aceita atuar *</Label>
                 <div className="flex mt-2">
-                  <Input 
+                  <Input
                     value={newCity}
                     onChange={(e) => setNewCity(e.target.value)}
                     placeholder="Digite o nome da cidade"
                     className="mr-2"
                   />
-                  <Button 
-                    type="button" 
-                    onClick={addCity} 
+                  <Button
+                    type="button"
+                    onClick={addCity}
                     variant="outline"
                     disabled={!watchCitiesState}
                   >
@@ -756,12 +746,12 @@ export default function DoctorRegistration() {
 
                 <div className="flex flex-wrap gap-2 mt-3">
                   {cities.map(city => (
-                    <div 
+                    <div
                       key={city}
                       className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center text-sm"
                     >
                       {city}
-                      <button 
+                      <button
                         type="button"
                         onClick={() => removeCity(city)}
                         className="ml-2 hover:text-destructive"
@@ -780,7 +770,6 @@ export default function DoctorRegistration() {
             </CardContent>
           </Card>
 
-          {/* Seção 5: Certificações */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -804,7 +793,7 @@ export default function DoctorRegistration() {
                     />
                     <Label htmlFor="acls">ACLS (Advanced Cardiac Life Support)</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Controller
                       control={form.control}
@@ -820,7 +809,7 @@ export default function DoctorRegistration() {
                     <Label htmlFor="bls">BLS (Basic Life Support)</Label>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <Controller
@@ -836,7 +825,7 @@ export default function DoctorRegistration() {
                     />
                     <Label htmlFor="atls">ATLS (Advanced Trauma Life Support)</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Controller
                       control={form.control}
@@ -853,19 +842,18 @@ export default function DoctorRegistration() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-4">
                 <Label htmlFor="otherCertifications">Outras certificações</Label>
-                <Input 
-                  id="otherCertifications" 
-                  {...form.register("certifications.others")} 
-                  placeholder="Especifique outras certificações relevantes" 
+                <Input
+                  id="otherCertifications"
+                  {...form.register("certifications.others")}
+                  placeholder="Especifique outras certificações relevantes"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Seção 6: Experiência */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -875,25 +863,24 @@ export default function DoctorRegistration() {
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="mainHospitals">Principais hospitais onde atuou</Label>
-                <Textarea 
-                  id="mainHospitals" 
-                  {...form.register("experience.mainHospitals")} 
+                <Textarea
+                  id="mainHospitals"
+                  {...form.register("experience.mainHospitals")}
                   placeholder="Liste os principais hospitais onde trabalhou"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="yearsOfExperience">Anos de experiência com plantões</Label>
-                <Input 
-                  id="yearsOfExperience" 
-                  {...form.register("experience.yearsOfExperience")} 
-                  placeholder="Ex: 5 anos em PS, 3 em UTI" 
+                <Input
+                  id="yearsOfExperience"
+                  {...form.register("experience.yearsOfExperience")}
+                  placeholder="Ex: 5 anos em PS, 3 em UTI"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Seção 7: Diferenciais */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -916,7 +903,7 @@ export default function DoctorRegistration() {
                   />
                   <Label htmlFor="hasDriverLicense">Possui CNH</Label>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Controller
                     control={form.control}
@@ -931,7 +918,7 @@ export default function DoctorRegistration() {
                   />
                   <Label htmlFor="hasElectronicHealthRecordExperience">Experiência com prontuário eletrônico</Label>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Controller
                     control={form.control}
@@ -947,13 +934,13 @@ export default function DoctorRegistration() {
                   <Label htmlFor="providesInvoice">Emite nota fiscal</Label>
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="languages">Idiomas</Label>
-                <Input 
-                  id="languages" 
-                  {...form.register("additionalInfo.languages")} 
-                  placeholder="Ex: Inglês (fluente), Espanhol (intermediário)" 
+                <Input
+                  id="languages"
+                  {...form.register("additionalInfo.languages")}
+                  placeholder="Ex: Inglês (fluente), Espanhol (intermediário)"
                 />
               </div>
             </CardContent>

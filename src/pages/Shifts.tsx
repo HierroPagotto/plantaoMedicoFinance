@@ -1,4 +1,3 @@
-
 import { AppShell } from '@/components/layout/AppShell';
 import { ShiftCard, type ShiftProps } from '@/components/shifts/ShiftCard';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
+import { api } from '@/lib/api';
 
 type FilterOptions = {
   status: string;
@@ -30,162 +30,129 @@ type FilterOptions = {
   search: string;
 };
 
+type ApiShift = {
+  id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  hospital: {
+    name: string;
+    address: string;
+    id: number;
+    latitude: number;
+    longitude: number;
+    created_at: string;
+  };
+  hospital_id: number;
+  doctor_id: number;
+  specialty: string;
+  status: string;
+  value: number;
+  payment_date: string;
+  created_at: string;
+  updated_at: string;
+};
+
 const Shifts = () => {
   const [shifts, setShifts] = useState<ShiftProps[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({
     status: 'all',
     specialty: 'all',
     dateRange: undefined,
     search: '',
   });
-  
+
   const specialties = [
-    'Clínica Médica',
     'Cardiologia',
+    'Clínica Médica',
+    'Dermatologia',
+    'Endocrinologia',
+    'Gastroenterologia',
+    'Geriatria',
+    'Ginecologia',
+    'Neurologia',
+    'Oftalmologia',
+    'Ortopedia',
     'Pediatria',
+    'Psiquiatria',
+    'Radiologia',
+    'Urologia'
   ];
 
   useEffect(() => {
-    // Mock data for demonstration
-    const mockShifts: ShiftProps[] = [
-      {
-        id: '1',
-        date: addDays(new Date(), 2),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Lucas',
-          address: 'Av. Brasília, 2084 - Centro, Araraquara - SP',
-        },
-        value: '1.250,00',
-        specialty: 'Clínica Médica',
-        paymentDate: addMonths(new Date(), 1),
-        status: 'scheduled',
-      },
-      {
-        id: '2',
-        date: subDays(new Date(), 3),
-        startTime: '19:00',
-        endTime: '07:00',
-        hospital: {
-          name: 'Hospital Santa Casa',
-          address: 'R. Padre Duarte, 700 - Jardim Nova América, Araraquara - SP',
-        },
-        value: '1.500,00',
-        specialty: 'Cardiologia',
-        paymentDate: addDays(new Date(), 5),
-        status: 'completed',
-      },
-      {
-        id: '3',
-        date: subDays(new Date(), 10),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital Unimed',
-          address: 'Av. José Bonifácio, 794 - Jardim Botafogo, Araraquara - SP',
-        },
-        value: '1.300,00',
-        specialty: 'Clínica Médica',
-        paymentDate: subDays(new Date(), 2),
-        status: 'paid',
-      },
-      {
-        id: '4',
-        date: new Date(),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Paulo',
-          address: 'R. Voluntários de São Paulo, 2150 - Centro, Araraquara - SP',
-        },
-        value: '1.200,00',
-        specialty: 'Pediatria',
-        paymentDate: addDays(new Date(), 15),
-        status: 'scheduled',
-      },
-      {
-        id: '5',
-        date: subMonths(new Date(), 1),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Lucas',
-          address: 'Av. Brasília, 2084 - Centro, Araraquara - SP',
-        },
-        value: '1.250,00',
-        specialty: 'Clínica Médica',
-        paymentDate: subDays(new Date(), 5),
-        status: 'canceled',
-      },
-      {
-        id: '6',
-        date: addDays(new Date(), 5),
-        startTime: '19:00',
-        endTime: '07:00',
-        hospital: {
-          name: 'Hospital Santa Casa',
-          address: 'R. Padre Duarte, 700 - Jardim Nova América, Araraquara - SP',
-        },
-        value: '1.400,00',
-        specialty: 'Cardiologia',
-        paymentDate: addDays(new Date(), 20),
-        status: 'scheduled',
-      },
-      {
-        id: '7',
-        date: addDays(new Date(), 10),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital Unimed',
-          address: 'Av. José Bonifácio, 794 - Jardim Botafogo, Araraquara - SP',
-        },
-        value: '1.350,00',
-        specialty: 'Clínica Médica',
-        paymentDate: addDays(new Date(), 25),
-        status: 'scheduled',
-      },
-      {
-        id: '8',
-        date: subDays(new Date(), 5),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Paulo',
-          address: 'R. Voluntários de São Paulo, 2150 - Centro, Araraquara - SP',
-        },
-        value: '1.250,00',
-        specialty: 'Pediatria',
-        paymentDate: addDays(new Date(), 10),
-        status: 'completed',
-      },
-    ];
+    const fetchShifts = async () => {
+      try {
+        setLoading(true);
+        const response = await api.getShifts();
+        const formattedShifts = response.map((shift: ApiShift) => ({
+          id: shift.id.toString(),
+          date: new Date(shift.date),
+          startTime: shift.start_time.substring(0, 5),
+          endTime: shift.end_time.substring(0, 5),
+          hospital: {
+            name: shift.hospital.name,
+            address: shift.hospital.address,
+          },
+          value: shift.value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2
+          }),
+          specialty: shift.specialty,
+          paymentDate: new Date(shift.payment_date),
+          status: shift.status,
+        }));
+        setShifts(formattedShifts);
+      } catch (err) {
+        setError('Erro ao carregar os plantões');
+        setLoading(false);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setShifts(mockShifts);
+    fetchShifts();
   }, []);
 
   const filteredShifts = shifts.filter(shift => {
-    // Filter by status
     if (filters.status !== 'all' && shift.status !== filters.status) return false;
-    
-    // Filter by specialty
+
     if (filters.specialty !== 'all' && shift.specialty !== filters.specialty) return false;
-    
-    // Filter by date range
+
     if (filters.dateRange && filters.dateRange.from && filters.dateRange.to) {
       const shiftDate = new Date(shift.date);
       const { from, to } = filters.dateRange;
       if (shiftDate < from || shiftDate > to) return false;
     }
-    
-    // Filter by search text (hospital name or address)
+
     if (filters.search && !shift.hospital.name.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
-    
+
     return true;
   });
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center h-64">
+          <p>Carregando plantões...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -199,8 +166,7 @@ const Shifts = () => {
           </Button>
         </div>
       </div>
-      
-      {/* Filters */}
+
       <div className="bg-card border rounded-lg p-4 mb-6">
         <div className="flex items-center mb-4">
           <Filter className="mr-2 h-5 w-5 text-muted-foreground" />
@@ -225,7 +191,7 @@ const Shifts = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Especialidade</label>
             <Select
@@ -245,7 +211,7 @@ const Shifts = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Período</label>
             <Popover>
@@ -274,7 +240,7 @@ const Shifts = () => {
               </PopoverContent>
             </Popover>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Buscar hospital</label>
             <Input
@@ -285,8 +251,7 @@ const Shifts = () => {
           </div>
         </div>
       </div>
-      
-      {/* Shifts list */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredShifts.length > 0 ? (
           filteredShifts.map((shift) => (

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
@@ -9,10 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useForm } from 'react-hook-form';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -32,9 +31,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { HospitalSearch, type Hospital } from './HospitalSearch';
+import { api } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 
 const specialties = [
-  'Cardiologia', 
+  'Cardiologia',
   'Clínica Médica',
   'Dermatologia',
   'Endocrinologia',
@@ -56,16 +57,9 @@ const formSchema = z.object({
   }),
   startTime: z.string().min(1, { message: "O horário de início é obrigatório" }),
   endTime: z.string().min(1, { message: "O horário de término é obrigatório" }),
-  hospital: z.object({
-    name: z.string().min(1, { message: "O nome do hospital é obrigatório" }),
-    address: z.string().min(1, { message: "O endereço do hospital é obrigatório" }),
-    location: z.object({
-      lat: z.number(),
-      lng: z.number(),
-    }),
-  }),
   value: z.string().min(1, { message: "O valor do plantão é obrigatório" }),
   specialty: z.string().min(1, { message: "A especialidade é obrigatória" }),
+  hospital_id: z.string().min(1, { message: "O hospital ou clínica é obrigatório" }),
   paymentDate: z.date({
     required_error: "A data prevista para pagamento é obrigatória",
   }),
@@ -75,8 +69,10 @@ type FormData = z.infer<typeof formSchema>;
 
 export function ShiftForm() {
   const [loading, setLoading] = useState(false);
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const { toast } = useToast();
-  
+  const navigate = useNavigate();
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -84,20 +80,32 @@ export function ShiftForm() {
       endTime: '',
       value: '',
       specialty: '',
+      hospital_id: '',
     }
   });
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      console.log('Shift data:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const shiftData = {
+        date: format(data.shiftDate, 'yyyy-MM-dd'),
+        start_time: data.startTime,
+        end_time: data.endTime,
+        hospital_id: data.hospital_id,
+        value: parseFloat(data.value.replace('.', '').replace(',', '.')),
+        specialty: data.specialty,
+        payment_date: format(data.paymentDate, 'yyyy-MM-dd'),
+      };
+
+      await api.createShift(shiftData);
+
       toast({
         title: "Plantão registrado com sucesso!",
         description: "O plantão foi adicionado ao seu calendário.",
       });
-      
+
+      navigate('/shifts');
+
       form.reset();
     } catch (error) {
       toast({
@@ -146,7 +154,7 @@ export function ShiftForm() {
                       onSelect={field.onChange}
                       initialFocus
                       locale={ptBR}
-                      className={cn("p-3 pointer-events-auto")}
+                      className="p-3"
                     />
                   </PopoverContent>
                 </Popover>
@@ -201,24 +209,31 @@ export function ShiftForm() {
 
           <FormField
             control={form.control}
-            name="hospital"
-            render={({ field }) => (
-              <FormItem className="col-span-1 md:col-span-2">
-                <FormLabel>Hospital / Clínica</FormLabel>
-                <FormControl>
-                  <HospitalSearch
-                    value={field.value as Hospital}
-                    onChange={(hospital: Hospital) => {
-                      field.onChange(hospital);
-                    }}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Busque pelo nome ou endereço do hospital ou clínica
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            name="hospital_id"
+            render={({ field }) => {
+              const selectedHospital = hospitals.find(h => h.id.toString() === field.value);
+
+              return (
+                <FormItem className="col-span-1 md:col-span-2">
+                  <FormLabel>Hospital / Clínica</FormLabel>
+                  <FormControl>
+                    <HospitalSearch
+                      value={selectedHospital || null}
+                      onChange={(hospital: Hospital) => {
+                        if (!hospitals.some(h => h.id === hospital.id)) {
+                          setHospitals([...hospitals, hospital]);
+                        }
+                        field.onChange(hospital.id.toString());
+                      }}
+                      onSearchResults={(results) => {
+                        setHospitals(results);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
 
           <FormField
@@ -303,7 +318,7 @@ export function ShiftForm() {
                       onSelect={field.onChange}
                       initialFocus
                       locale={ptBR}
-                      className={cn("p-3 pointer-events-auto")}
+                      className="p-3"
                     />
                   </PopoverContent>
                 </Popover>

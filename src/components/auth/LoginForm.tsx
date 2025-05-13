@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -15,10 +14,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useNavigate } from 'react-router-dom';
-
+import { api } from '@/lib/api';
 const formSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
-  password: z.string().min(6, { message: 'Senha inválida' }),
+  password: z.string().min(6, { message: 'Senha deve ter pelo menos 6 caracteres' }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -39,19 +38,14 @@ export function LoginForm() {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      // Simulate API call
-      console.log('Login data:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await api.login(data.email, data.password);
       
       toast({
         title: "Login realizado com sucesso!",
         description: "Redirecionando para o dashboard...",
       });
       
-      // Redirect to dashboard after successful login
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
+      navigate('/dashboard');
     } catch (error) {
       toast({
         variant: "destructive",

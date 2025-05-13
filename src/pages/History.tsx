@@ -1,4 +1,3 @@
-
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,10 +18,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, ChevronDown, Download, Filter, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { type ShiftProps, type ShiftStatus } from '@/components/shifts/ShiftCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { addDays, addMonths, subDays, subMonths } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +35,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import api from '@/lib/api';
+
+interface Hospital {
+  id: number;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+}
+
+interface Shift {
+  id: number;
+  doctor_id: number;
+  hospital_id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  value: number;
+  status: 'scheduled' | 'completed' | 'paid' | 'canceled';
+  payment_date: string;
+  specialty: string;
+  hospital: Hospital;
+  created_at: string;
+  updated_at: string;
+}
 
 const statusConfig = {
   scheduled: { label: 'Agendado', color: 'bg-blue-100 text-blue-800' },
@@ -47,159 +70,122 @@ const statusConfig = {
 };
 
 const History = () => {
-  const [shifts, setShifts] = useState<ShiftProps[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<ShiftProps | null>(null);
+  const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
-    // Mock data for demonstration
-    const mockShifts: ShiftProps[] = [
-      {
-        id: '1',
-        date: addDays(new Date(), 2),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Lucas',
-          address: 'Av. Brasília, 2084 - Centro, Araraquara - SP',
-        },
-        value: '1.250,00',
-        specialty: 'Clínica Médica',
-        paymentDate: addMonths(new Date(), 1),
-        status: 'scheduled',
-      },
-      {
-        id: '2',
-        date: subDays(new Date(), 3),
-        startTime: '19:00',
-        endTime: '07:00',
-        hospital: {
-          name: 'Hospital Santa Casa',
-          address: 'R. Padre Duarte, 700 - Jardim Nova América, Araraquara - SP',
-        },
-        value: '1.500,00',
-        specialty: 'Cardiologia',
-        paymentDate: addDays(new Date(), 5),
-        status: 'completed',
-      },
-      {
-        id: '3',
-        date: subDays(new Date(), 10),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital Unimed',
-          address: 'Av. José Bonifácio, 794 - Jardim Botafogo, Araraquara - SP',
-        },
-        value: '1.300,00',
-        specialty: 'Clínica Médica',
-        paymentDate: subDays(new Date(), 2),
-        status: 'paid',
-      },
-      {
-        id: '4',
-        date: new Date(),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Paulo',
-          address: 'R. Voluntários de São Paulo, 2150 - Centro, Araraquara - SP',
-        },
-        value: '1.200,00',
-        specialty: 'Pediatria',
-        paymentDate: addDays(new Date(), 15),
-        status: 'scheduled',
-      },
-      {
-        id: '5',
-        date: subMonths(new Date(), 1),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Lucas',
-          address: 'Av. Brasília, 2084 - Centro, Araraquara - SP',
-        },
-        value: '1.250,00',
-        specialty: 'Clínica Médica',
-        paymentDate: subDays(new Date(), 5),
-        status: 'canceled',
-      },
-      {
-        id: '6',
-        date: subMonths(new Date(), 2),
-        startTime: '19:00',
-        endTime: '07:00',
-        hospital: {
-          name: 'Hospital Santa Casa',
-          address: 'R. Padre Duarte, 700 - Jardim Nova América, Araraquara - SP',
-        },
-        value: '1.500,00',
-        specialty: 'Cardiologia',
-        paymentDate: subMonths(new Date(), 1),
-        status: 'paid',
-      },
-      {
-        id: '7',
-        date: subMonths(new Date(), 2),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital Unimed',
-          address: 'Av. José Bonifácio, 794 - Jardim Botafogo, Araraquara - SP',
-        },
-        value: '1.300,00',
-        specialty: 'Clínica Médica',
-        paymentDate: subMonths(new Date(), 1),
-        status: 'paid',
-      },
-      {
-        id: '8',
-        date: subMonths(new Date(), 3),
-        startTime: '08:00',
-        endTime: '20:00',
-        hospital: {
-          name: 'Hospital São Paulo',
-          address: 'R. Voluntários de São Paulo, 2150 - Centro, Araraquara - SP',
-        },
-        value: '1.200,00',
-        specialty: 'Pediatria',
-        paymentDate: subMonths(new Date(), 2),
-        status: 'paid',
-      },
-    ];
+    const fetchShifts = async () => {
+      try {
+        setLoading(true);
+        const response = await api.getShifts();
+        setShifts(response);
+      } catch (error) {
+        console.error('Erro ao buscar plantões:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setShifts(mockShifts);
+    fetchShifts();
   }, []);
 
   const filteredShifts = shifts.filter(shift => {
-    // Filter by status
     if (filterStatus !== 'all' && shift.status !== filterStatus) return false;
-    
-    // Filter by search text
+
     if (search && !shift.hospital.name.toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
-    
+
     return true;
   });
 
-  const updateShiftStatus = (id: string, newStatus: ShiftStatus) => {
-    setShifts(prevShifts => 
-      prevShifts.map(shift => 
-        shift.id === id ? { ...shift, status: newStatus } : shift
-      )
-    );
-    setSelectedShift(null);
+  const updateShiftStatus = async (id: number, newStatus: Shift['status']) => {
+    try {
+      await api.updateShiftStatus(id, newStatus);
+
+      setShifts(prevShifts =>
+        prevShifts.map(shift =>
+          shift.id === id ? { ...shift, status: newStatus } : shift
+        )
+      );
+      setSelectedShift(null);
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+    }
   };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const exportToCSV = () => {
+    if (shifts.length === 0) return;
+
+    const headers = [
+      'ID',
+      'Data',
+      'Horário',
+      'Hospital',
+      //'Endereço',
+      'Especialidade',
+      'Valor (R$)',
+      'Status',
+      'Data Pagamento',
+      'Data Criação'
+    ];
+
+    const rows = shifts.map((shift) => [
+      shift.id,
+      format(new Date(shift.date), 'dd/MM/yyyy', { locale: ptBR }),
+      `${shift.start_time} - ${shift.end_time}`,
+      shift.hospital.name,
+      //shift.hospital.address,
+      shift.specialty,
+      shift.value.toFixed(2),
+      statusConfig[shift.status].label,
+      shift.payment_date ? format(new Date(shift.payment_date), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+      format(new Date(shift.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+    ]);
+
+    let csvContent = headers.join(';') + '\n';
+    rows.forEach(row => {
+      csvContent += row.join(';') + '\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `historico_plantoes_${format(new Date(), 'yyyyMMdd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center h-64">
+          <p>Carregando plantões...</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Histórico de plantões</h1>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportToCSV} disabled={shifts.length === 0}>
             <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
         </div>
@@ -239,6 +225,7 @@ const History = () => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[100px]">Data</TableHead>
+              <TableHead className="w-[100px]">Horário</TableHead>
               <TableHead>Hospital</TableHead>
               <TableHead>Especialidade</TableHead>
               <TableHead>Valor</TableHead>
@@ -254,27 +241,29 @@ const History = () => {
                   <TableCell>
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{format(shift.date, "dd/MM/yy", { locale: ptBR })}</span>
+                      <span>{format(new Date(shift.date), "dd/MM/yy", { locale: ptBR })}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {shift.startTime} - {shift.endTime}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-xs mt-1">
+                      {shift.start_time} - {shift.end_time}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{shift.hospital.name}</div>
-                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                    {/*<div className="text-xs text-muted-foreground truncate max-w-[200px]">
                       {shift.hospital.address}
-                    </div>
+                    </div>*/}
                   </TableCell>
                   <TableCell>{shift.specialty}</TableCell>
-                  <TableCell>R$ {shift.value}</TableCell>
+                  <TableCell>{formatCurrency(shift.value)}</TableCell>
                   <TableCell>
                     <Badge className={statusConfig[shift.status].color}>
                       {statusConfig[shift.status].label}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {format(shift.paymentDate, "dd/MM/yyyy", { locale: ptBR })}
+                    {format(new Date(shift.payment_date), "dd/MM/yyyy", { locale: ptBR })}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -310,7 +299,7 @@ const History = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
-                  Nenhum plantão encontrado.
+                  {shifts.length === 0 ? 'Nenhum plantão cadastrado.' : 'Nenhum plantão encontrado com os filtros aplicados.'}
                 </TableCell>
               </TableRow>
             )}
@@ -318,7 +307,6 @@ const History = () => {
         </Table>
       </div>
 
-      {/* Shift details dialog */}
       <Dialog open={!!selectedShift} onOpenChange={() => setSelectedShift(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -333,11 +321,11 @@ const History = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Data</h4>
-                  <p>{format(selectedShift.date, "dd/MM/yyyy", { locale: ptBR })}</p>
+                  <p>{format(new Date(selectedShift.date), "dd/MM/yyyy", { locale: ptBR })}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Horário</h4>
-                  <p>{selectedShift.startTime} - {selectedShift.endTime}</p>
+                  <p>{selectedShift.start_time} - {selectedShift.end_time}</p>
                 </div>
                 <div className="col-span-2">
                   <h4 className="text-sm font-medium text-muted-foreground">Hospital</h4>
@@ -350,7 +338,7 @@ const History = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Valor</h4>
-                  <p className="font-medium">R$ {selectedShift.value}</p>
+                  <p className="font-medium">{formatCurrency(selectedShift.value)}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Status</h4>
@@ -360,14 +348,14 @@ const History = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Data para pagamento</h4>
-                  <p>{format(selectedShift.paymentDate, "dd/MM/yyyy", { locale: ptBR })}</p>
+                  <p>{format(new Date(selectedShift.payment_date), "dd/MM/yyyy", { locale: ptBR })}</p>
                 </div>
               </div>
 
               <DialogFooter className="gap-2 sm:gap-0">
                 {selectedShift.status === 'scheduled' && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full sm:w-auto"
                     onClick={() => updateShiftStatus(selectedShift.id, 'completed')}
                   >
@@ -375,7 +363,7 @@ const History = () => {
                   </Button>
                 )}
                 {(selectedShift.status === 'scheduled' || selectedShift.status === 'completed') && (
-                  <Button 
+                  <Button
                     className="w-full sm:w-auto"
                     onClick={() => updateShiftStatus(selectedShift.id, 'paid')}
                   >

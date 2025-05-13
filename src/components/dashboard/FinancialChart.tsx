@@ -13,22 +13,38 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
+import { api } from '@/lib/api';
 
 const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-const generateMonthlyData = () => {
-  return months.map((month) => ({
-    month,
-    ganhos: Math.floor(Math.random() * 15000) + 5000,
-    plantoes: Math.floor(Math.random() * 12) + 3,
-  }));
-};
+interface FinancialChartData {
+  month: number;
+  earnings: number;
+  shifts_count: number;
+}
 
 export function FinancialChart() {
   const [data, setData] = useState<any[]>([]);
 
   useEffect(() => {
-    setData(generateMonthlyData());
+    const fetchData = async () => {
+      try {
+        const response = await api.getFinancial();
+        const apiData: FinancialChartData[] = response;
+        
+        const formattedData = apiData.map(item => ({
+          month: months[item.month - 1],
+          ganhos: item.earnings,
+          plantoes: item.shifts_count
+        }));
+        
+        setData(formattedData);
+      } catch (error) {
+        console.error('Erro ao buscar dados financeiros:', error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const formatCurrency = (value: number) => {
