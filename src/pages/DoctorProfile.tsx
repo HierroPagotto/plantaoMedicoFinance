@@ -20,7 +20,9 @@ import {
   Shield,
   Info,
   Star,
+  Printer,
 } from "lucide-react";
+import PrintButton from "@/components/ui/print-button";
 
 interface UserData {
   accepts_fixed_shifts: boolean;
@@ -141,17 +143,20 @@ export default function DoctorProfile() {
 
   return (
     <AppShell>
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto py-6 print-container">
+        <div className="flex items-center justify-between mb-6 print-hide">
           <h1 className="text-2xl font-bold">Perfil Médico</h1>
-          <Button asChild variant="outline">
-            <Link to="/doctor-registration" className="flex items-center gap-2">
-              <Edit size={16} />
-              Editar perfil
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <PrintButton />
+            <Button asChild variant="outline">
+              <Link to="/doctor-registration" className="flex items-center gap-2">
+                <Edit size={16} />
+                Editar perfil
+              </Link>
+            </Button>
+          </div>
         </div>
-
+        
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">

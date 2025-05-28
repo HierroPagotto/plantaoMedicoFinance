@@ -119,7 +119,7 @@ class ApiClient {
     async updateShiftStatus(shiftId: any, status: string) {
         if (status === 'completed') {
             return this.setShiftComplete(shiftId);
-        } else if (status === 'cancelled') {
+        } else if (status === 'canceled') {
             return this.setShiftCancelled(shiftId);
         } else if (status === 'paid') {
             return this.setShiftPaid(shiftId);
@@ -139,6 +139,11 @@ class ApiClient {
 
     async setShiftPaid(shiftId: any) {
         const response = await this.api.post(`/shifts/${shiftId}/paid`);
+        return response.data;
+    }
+
+    async deleteShift(shiftId: any) {
+        const response = await this.api.delete(`/shifts/${shiftId}`);
         return response.data;
     }
 }

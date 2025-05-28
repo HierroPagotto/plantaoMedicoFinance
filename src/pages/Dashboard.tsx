@@ -88,7 +88,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Alerta de perfil incompleto */}
       {!hasProfile && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
           <h3 className="font-medium text-amber-800">Perfil médico incompleto</h3>

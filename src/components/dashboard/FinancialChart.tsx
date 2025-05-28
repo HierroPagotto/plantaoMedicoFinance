@@ -57,15 +57,15 @@ export function FinancialChart() {
 
   return (
     <Card className="col-span-1 md:col-span-2">
-      <CardHeader className="pb-2">
+      {/*<CardHeader className="pb-2">
         <CardTitle>Visão financeira</CardTitle>
-      </CardHeader>
+      </CardHeader>*/}
       <CardContent className="pt-0">
         <Tabs defaultValue="ganhos">
           <div className="flex justify-between items-center mb-4">
             <TabsList>
-              <TabsTrigger value="ganhos">Ganhos</TabsTrigger>
-              <TabsTrigger value="plantoes">Plantões</TabsTrigger>
+              <TabsTrigger value="ganhos">Fluxo de Pagamentos</TabsTrigger>
+              <TabsTrigger value="plantoes">Plantões Mês a Mês</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="ganhos">
@@ -93,7 +93,7 @@ export function FinancialChart() {
                   fontSize={12}
                 />
                 <Tooltip
-                  formatter={(value: number) => [formatCurrency(value), "Ganhos"]}
+                  formatter={(value: number) => [formatCurrency(value), "Fluxo de Pagamentos"]}
                   labelFormatter={(label) => `Mês: ${label}`}
                 />
                 <Area

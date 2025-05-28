@@ -151,11 +151,11 @@ export default function DoctorProfilePublic() {
   return (
     <>
       <div className="container mx-auto py-6 print-container">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 print-hide">
           <h1 className="text-2xl font-bold">Perfil Médico</h1>
           <PrintButton />
         </div>
-
+        
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">

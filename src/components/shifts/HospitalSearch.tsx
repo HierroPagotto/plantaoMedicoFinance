@@ -51,14 +51,14 @@ export function HospitalSearch({ value, onChange, onCreateNew, onSearchResults }
       setLoading(true);
       const response = await api.getHospitals();
       const hospitals = response.data || response;
-      
+
       const filtered = hospitals
-        .filter((hospital: any) => 
-          hospital.name.toLowerCase().includes(searchText.toLowerCase()) || 
+        .filter((hospital: any) =>
+          hospital.name.toLowerCase().includes(searchText.toLowerCase()) ||
           (hospital.address && hospital.address.toLowerCase().includes(searchText.toLowerCase()))
         )
         .map(mapApiHospitalToComponent);
-      
+
       setPredictions(filtered);
       setShowCreateOption(searchText !== '' && filtered.length === 0);
     } catch (error) {
@@ -122,8 +122,23 @@ export function HospitalSearch({ value, onChange, onCreateNew, onSearchResults }
           id: 'new'
         }));
       } else {
-        const createdHospital = await api.createHospital(newHospital);
-        onChange(mapApiHospitalToComponent(createdHospital));
+        await api.createHospital(newHospital);
+
+        const response = await api.getHospitals();
+        const hospitals = response.data || response;
+        const mappedHospitals = hospitals.map(mapApiHospitalToComponent);
+
+        setPredictions(mappedHospitals);
+
+        if (onSearchResults) {
+          onSearchResults(mappedHospitals);
+        }
+
+        const newlyCreatedHospital = mappedHospitals.find(h => h.name === search) || mappedHospitals[mappedHospitals.length - 1];
+
+        if (newlyCreatedHospital) {
+          onChange(newlyCreatedHospital);
+        }
       }
 
       setOpen(false);
@@ -133,6 +148,7 @@ export function HospitalSearch({ value, onChange, onCreateNew, onSearchResults }
         description: "O novo hospital foi adicionado com sucesso.",
       });
     } catch (error) {
+      console.error('Erro ao criar hospital:', error);
       toast({
         title: "Erro ao criar hospital",
         description: "Não foi possível criar o novo hospital.",

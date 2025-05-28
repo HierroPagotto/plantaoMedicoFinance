@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { formatISODate, formatMonthDate } from '@/lib/date-utils';
 import { ptBR } from 'date-fns/locale';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -14,18 +14,14 @@ interface ShiftCalendarProps {
 export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   
-  // Create a map of dates with shifts for highlighting in the calendar
   const shiftDates = shifts.reduce<Record<string, boolean>>((acc, shift) => {
-    const dateStr = format(shift.date, 'yyyy-MM-dd');
+    const dateStr = formatISODate(shift.date);
     acc[dateStr] = true;
     return acc;
   }, {});
 
-  // Get shifts for the selected date
   const shiftsForSelectedDate = selectedDate
-    ? shifts.filter(shift => 
-        format(shift.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-      )
+    ? shifts.filter(shift => formatISODate(shift.date) === formatISODate(selectedDate))
     : [];
 
   return (
@@ -43,7 +39,7 @@ export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
             locale={ptBR}
             modifiers={{
               highlighted: (date) => {
-                const dateStr = format(date, 'yyyy-MM-dd');
+                const dateStr = formatISODate(date);
                 return shiftDates[dateStr] || false;
               }
             }}
@@ -60,7 +56,7 @@ export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-muted-foreground">
               {selectedDate
-                ? `Plantões em ${format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}`
+                ? `Plantões em ${formatMonthDate(selectedDate)}`
                 : 'Nenhuma data selecionada'}
             </h3>
             

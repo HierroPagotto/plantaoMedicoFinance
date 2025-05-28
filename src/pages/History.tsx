@@ -1,5 +1,17 @@
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -16,9 +28,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronDown, Download, Filter, Search } from 'lucide-react';
+import { Calendar, ChevronDown, Download, Filter, Search, Trash2, Info, CheckCircle, DollarSign, XCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { formatShortDate, formatMediumDate, formatISODate } from '@/lib/date-utils';
 import { ptBR } from 'date-fns/locale';
 import {
   Dialog,
@@ -51,6 +63,7 @@ interface Shift {
   doctor_id: number;
   hospital_id: number;
   date: string;
+  end_date?: string;
   start_time: string;
   end_time: string;
   value: number;
@@ -62,11 +75,12 @@ interface Shift {
   updated_at: string;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   scheduled: { label: 'Agendado', color: 'bg-blue-100 text-blue-800' },
   completed: { label: 'Realizado', color: 'bg-green-100 text-green-800' },
   paid: { label: 'Pago', color: 'bg-purple-100 text-purple-800' },
   canceled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+  cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
 };
 
 const History = () => {
@@ -76,6 +90,8 @@ const History = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [shiftToDelete, setShiftToDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchShifts = async () => {
@@ -113,8 +129,43 @@ const History = () => {
         )
       );
       setSelectedShift(null);
+      toast({
+        title: 'Status atualizado',
+        description: `O plantão foi marcado como ${statusConfig[newStatus].label.toLowerCase()}.`,
+      });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status do plantão.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteShift = async () => {
+    if (!shiftToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      await api.deleteShift(shiftToDelete);
+      
+      setShifts(prevShifts => prevShifts.filter(shift => shift.id !== shiftToDelete));
+      toast({
+        title: 'Plantão excluído',
+        description: 'O plantão foi excluído com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao excluir plantão:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o plantão. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShiftToDelete(null);
     }
   };
 
@@ -144,15 +195,15 @@ const History = () => {
 
     const rows = shifts.map((shift) => [
       shift.id,
-      format(new Date(shift.date), 'dd/MM/yyyy', { locale: ptBR }),
+      formatShortDate(shift.date),
       `${shift.start_time} - ${shift.end_time}`,
       shift.hospital.name,
       //shift.hospital.address,
       shift.specialty,
       shift.value.toFixed(2),
       statusConfig[shift.status].label,
-      shift.payment_date ? format(new Date(shift.payment_date), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
-      format(new Date(shift.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+      shift.payment_date ? formatShortDate(shift.payment_date) : 'N/A',
+      formatShortDate(shift.created_at)
     ]);
 
     let csvContent = headers.join(';') + '\n';
@@ -164,7 +215,7 @@ const History = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `historico_plantoes_${format(new Date(), 'yyyyMMdd')}.csv`);
+    link.setAttribute('download', `historico_plantoes_${formatISODate(new Date()).replace(/-/g, '')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -241,7 +292,12 @@ const History = () => {
                   <TableCell>
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{format(new Date(shift.date), "dd/MM/yy", { locale: ptBR })}</span>
+                      <span>
+                        {formatShortDate(shift.date).substring(0, 8)}
+                        {shift.end_date && (
+                          <span className="text-muted-foreground"> até {formatShortDate(shift.end_date).substring(0, 8)}</span>
+                        )}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -263,7 +319,7 @@ const History = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {format(new Date(shift.payment_date), "dd/MM/yyyy", { locale: ptBR })}
+                    {formatShortDate(shift.payment_date)}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -274,21 +330,34 @@ const History = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => setSelectedShift(shift)}>
+                          <Info className="mr-2 h-4 w-4 text-blue-500" />
                           Detalhes
                         </DropdownMenuItem>
                         {shift.status === 'scheduled' && (
                           <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'completed')}>
+                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                             Marcar como realizado
                           </DropdownMenuItem>
                         )}
                         {(shift.status === 'scheduled' || shift.status === 'completed') && (
                           <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'paid')}>
+                            <DollarSign className="mr-2 h-4 w-4 text-purple-500" />
                             Marcar como pago
                           </DropdownMenuItem>
                         )}
                         {shift.status === 'scheduled' && (
                           <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'canceled')}>
+                            <XCircle className="mr-2 h-4 w-4 text-red-500" />
                             Cancelar plantão
+                          </DropdownMenuItem>
+                        )}
+                        {shift.status !== 'paid' && (
+                          <DropdownMenuItem 
+                            onClick={() => setShiftToDelete(shift.id)}
+                            className="text-red-500"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir plantão
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -321,7 +390,12 @@ const History = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Data</h4>
-                  <p>{format(new Date(selectedShift.date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                  <p>
+                    {formatShortDate(selectedShift.date)}
+                    {selectedShift.end_date && (
+                      <span className="text-muted-foreground"> até {formatShortDate(selectedShift.end_date)}</span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Horário</h4>
@@ -348,7 +422,7 @@ const History = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Data para pagamento</h4>
-                  <p>{format(new Date(selectedShift.payment_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                  <p>{formatShortDate(selectedShift.payment_date)}</p>
                 </div>
               </div>
 
@@ -375,6 +449,27 @@ const History = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!shiftToDelete} onOpenChange={(open) => !open && setShiftToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir plantão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este plantão? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={deleteShift}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 };

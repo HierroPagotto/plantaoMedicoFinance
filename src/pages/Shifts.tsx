@@ -1,5 +1,5 @@
 import { AppShell } from '@/components/layout/AppShell';
-import { ShiftCard, type ShiftProps } from '@/components/shifts/ShiftCard';
+import { ShiftCard, type ShiftProps, type ShiftStatus } from '@/components/shifts/ShiftCard';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Filter, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -33,6 +33,7 @@ type FilterOptions = {
 type ApiShift = {
   id: number;
   date: string;
+  end_date?: string;
   start_time: string;
   end_time: string;
   hospital: {
@@ -89,6 +90,7 @@ const Shifts = () => {
         const formattedShifts = response.map((shift: ApiShift) => ({
           id: shift.id.toString(),
           date: new Date(shift.date),
+          endDate: shift.end_date ? new Date(shift.end_date) : undefined,
           startTime: shift.start_time.substring(0, 5),
           endTime: shift.end_time.substring(0, 5),
           hospital: {
@@ -115,6 +117,19 @@ const Shifts = () => {
 
     fetchShifts();
   }, []);
+
+  const handleStatusChange = (id: string, newStatus: ShiftStatus | 'deleted') => {
+    if (newStatus === 'deleted') {
+      setShifts(prevShifts => prevShifts.filter(shift => shift.id !== id));
+      return;
+    }
+    
+    setShifts(prevShifts => 
+      prevShifts.map(shift => 
+        shift.id === id ? { ...shift, status: newStatus as ShiftStatus } : shift
+      )
+    );
+  };
 
   const filteredShifts = shifts.filter(shift => {
     if (filters.status !== 'all' && shift.status !== filters.status) return false;
@@ -255,7 +270,11 @@ const Shifts = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredShifts.length > 0 ? (
           filteredShifts.map((shift) => (
-            <ShiftCard key={shift.id} shift={shift} />
+            <ShiftCard 
+              key={shift.id} 
+              shift={shift} 
+              onStatusChange={handleStatusChange}
+            />
           ))
         ) : (
           <div className="col-span-full flex items-center justify-center h-40 bg-muted/30 rounded-lg">

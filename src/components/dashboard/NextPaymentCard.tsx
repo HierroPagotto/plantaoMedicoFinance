@@ -2,39 +2,39 @@
 import { Calendar, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { format, isFuture } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { isFuture, parseISO } from 'date-fns';
+import { formatMonthDate } from '@/lib/date-utils';
 import { useState, useEffect } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function NextPaymentCard({ shifts }: any) {
-  const [nextPayment, setNextPayment] = useState<any | null>(null);
+  const [upcomingPayments, setUpcomingPayments] = useState<any[]>([]);
+  const MAX_PAYMENTS_TO_SHOW = 5;
 
   useEffect(() => {
-    const upcomingPayments = shifts
+    const filteredPayments = shifts
       .filter(shift => {
-        const paymentDate = new Date(shift.payment_date);
+        const paymentDate = parseISO(shift.payment_date);
         return (
           (shift.status === 'completed' || shift.status === 'scheduled') &&
           isFuture(paymentDate)
         );
       })
-      .sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
+      .sort((a, b) => parseISO(a.payment_date).getTime() - parseISO(b.payment_date).getTime())
+      .slice(0, MAX_PAYMENTS_TO_SHOW)
+      .map(payment => ({
+        ...payment,
+        paymentDate: parseISO(payment.payment_date),
+      }));
 
-    if (upcomingPayments.length > 0) {
-      const next = upcomingPayments[0];
-      setNextPayment({
-        ...next,
-        paymentDate: new Date(next.payment_date),
-      });
-    }
+    setUpcomingPayments(filteredPayments);
   }, [shifts]);
 
-
-  if (!nextPayment) {
+  if (upcomingPayments.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Próximo pagamento</CardTitle>
+          <CardTitle className="text-base">Próximos pagamentos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32 text-muted-foreground">
@@ -46,26 +46,37 @@ export function NextPaymentCard({ shifts }: any) {
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
-        <CardTitle className="text-base">Próximo pagamento</CardTitle>
+        <CardTitle className="text-base">Próximos pagamentos</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="text-2xl font-bold">R$ {nextPayment.value}</div>
-          <div className="text-muted-foreground">{nextPayment.hospital.name}</div>
-        </div>
-        <div className="flex items-center space-x-2 text-sm">
-          <Calendar className="h-4 w-4 text-medical-blue" />
-          <span>
-            {format(nextPayment.paymentDate, "dd 'de' MMMM", { locale: ptBR })}
-          </span>
-        </div>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[220px] px-4">
+          {upcomingPayments.map((payment, index) => (
+            <div 
+              key={payment.id} 
+              className={`py-3 ${index !== upcomingPayments.length - 1 ? 'border-b' : ''}`}
+            >
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="text-lg font-bold">R$ {payment.value}</div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Calendar className="h-4 w-4 text-medical-blue" />
+                    <span>
+                      {formatMonthDate(payment.paymentDate)}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">{payment.hospital.name}</div>
+              </div>
+            </div>
+          ))}
+        </ScrollArea>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="px-4 py-3">
         <Button variant="outline" size="sm" className="w-full" asChild>
           <a href="/finance">
-            Ver detalhes
+            Ver todos os pagamentos
             <ChevronRight className="ml-1 h-4 w-4" />
           </a>
         </Button>

@@ -102,3 +102,127 @@
   height: 100%;
   min-height: 250px;
 }
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.5cm;
+  }
+
+  html, body {
+    height: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background-color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print, .no-print * {
+    display: none !important;
+  }
+
+  .printing-active .sidebar,
+  .printing-active header,
+  .printing-active nav,
+  .printing-active .AppShell > div > aside,
+  .printing-active .print-hide,
+  .printing-active button,
+  .printing-active [role="button"],
+  .printing-active a[href]:not([href^="#"]) {
+    display: none !important;
+  }
+
+  .printing-active .AppShell {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  .printing-active .print-container {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  .printing-active main {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+
+  .card {
+    display: block !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: visible !important;
+    height: auto !important;
+    margin-bottom: 15px !important;
+  }
+
+  body {
+    font-size: 11pt !important;
+  }
+
+  .grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 15px !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  @media (max-width: 768px) {
+    .grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  img, svg {
+    display: inline-block !important;
+    max-width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+
+  * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  th, td {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  section, article, .card-header, .card-content {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  p, h1, h2, h3, h4, h5, h6, span {
+    color: black !important;
+    text-shadow: none !important;
+  }
+}

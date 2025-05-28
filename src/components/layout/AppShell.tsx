@@ -26,9 +26,10 @@ export const AppShell = ({ children }: AppShellProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
 
-  const [user, setUser] = useState<{ name: string; specialty: string }>({
+  const [user, setUser] = useState<{ name: string; specialty: string; photo_url?: string }>({
     name: 'Carregando...',
-    specialty: '...'
+    specialty: '...',
+    photo_url: undefined
   });
 
   useEffect(() => {
@@ -38,7 +39,8 @@ export const AppShell = ({ children }: AppShellProps) => {
         const parsed = JSON.parse(storedUser);
         setUser({
           name: parsed.name || 'Desconhecido(a)',
-          specialty: parsed.main_specialty || '...'
+          specialty: parsed.main_specialty || '...',
+          photo_url: parsed.photo_url || undefined
         });
       } catch {
         console.error('Erro ao carregar os dados do usuário');
@@ -60,9 +62,9 @@ export const AppShell = ({ children }: AppShellProps) => {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="flex h-screen w-screen bg-background">
-        <Sidebar>
+        <Sidebar className="md:block">
           <SidebarHeader className="border-b border-border">
             <div className="flex items-center p-2">
               {sidebarOpen ? (
@@ -92,7 +94,11 @@ export const AppShell = ({ children }: AppShellProps) => {
             <div className="flex items-center p-2">
               <Link to="/doctor-profile" className="flex items-center w-full">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>{user.name.split(' ').map(name => name[0]).join('')}</AvatarFallback>
+                  {user.photo_url ? (
+                    <AvatarImage src={user.photo_url} alt={user.name} />
+                  ) : (
+                    <AvatarFallback>{user.name.split(' ').map(name => name[0]).join('')}</AvatarFallback>
+                  )}
                 </Avatar>
                 <div className="ml-3 overflow-hidden">
                   <p className="font-medium truncate">{user.name}</p>

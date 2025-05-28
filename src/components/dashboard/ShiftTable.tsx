@@ -1,6 +1,20 @@
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
+import { Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { formatMediumDate, formatShortDate } from '@/lib/date-utils';
 import {
   Table,
   TableBody,
@@ -33,6 +47,7 @@ interface Shift {
   doctor_id: number;
   hospital_id: number;
   date: string;
+  end_date?: string;
   start_time: string;
   end_time: string;
   value: number;
@@ -48,19 +63,53 @@ interface ShiftTableProps {
   shifts: Shift[];
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   scheduled: { label: 'Agendado', color: 'bg-blue-100 text-blue-800' },
   completed: { label: 'Realizado', color: 'bg-green-100 text-green-800' },
   paid: { label: 'Pago', color: 'bg-purple-100 text-purple-800' },
   canceled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+  cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
 };
 
 export function ShiftTable({ shifts }: ShiftTableProps) {
   const [filter, setFilter] = useState<Shift['status'] | 'all'>('all');
+  const [localShifts, setLocalShifts] = useState<Shift[]>(shifts);
+  const [shiftToDelete, setShiftToDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    setLocalShifts(shifts);
+  }, [shifts]);
 
   const filteredShifts = filter === 'all'
-    ? shifts
-    : shifts.filter(shift => shift.status === filter);
+    ? localShifts
+    : localShifts.filter(shift => shift.status === filter);
+    
+  const handleDeleteShift = async () => {
+    if (!shiftToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      await api.deleteShift(shiftToDelete);
+      
+      setLocalShifts(prevShifts => prevShifts.filter(shift => shift.id !== shiftToDelete));
+      toast({
+        title: 'Plantão excluído',
+        description: 'O plantão foi excluído com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao excluir plantão:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o plantão. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShiftToDelete(null);
+    }
+  };
 
   return (
     <Card className="col-span-1 md:col-span-3">
@@ -93,6 +142,7 @@ export function ShiftTable({ shifts }: ShiftTableProps) {
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden md:table-cell">Especialidade</TableHead>
                 <TableHead className="hidden md:table-cell">Pagamento</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,7 +151,10 @@ export function ShiftTable({ shifts }: ShiftTableProps) {
                   <TableRow key={shift.id}>
                     <TableCell>
                       <div className="font-medium">
-                        {format(new Date(shift.date), "dd MMM yyyy", { locale: ptBR })}
+                        {formatMediumDate(shift.date)}
+                        {shift.end_date && (
+                          <span className="text-muted-foreground"> até {formatMediumDate(shift.end_date)}</span>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground md:hidden">
                         {shift.start_time} - {shift.end_time}
@@ -116,13 +169,45 @@ export function ShiftTable({ shifts }: ShiftTableProps) {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{shift.specialty}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {format(new Date(shift.payment_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {formatShortDate(shift.payment_date)}
+                    </TableCell>
+                    <TableCell>
+                      {shift.status !== 'paid' && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => setShiftToDelete(shift.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir plantão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir este plantão? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={handleDeleteShift}
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? 'Excluindo...' : 'Excluir'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                     Nenhum plantão encontrado
                   </TableCell>
                 </TableRow>
