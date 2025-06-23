@@ -110,7 +110,7 @@ const Dashboard = () => {
         <StatCard
           title="Plantões agendados"
           value={stats.scheduled_shifts.toString()}
-          description="Próximos 30 dias"
+          description="No mês Atual"
           icon={<Calendar />}
         />
         <StatCard
