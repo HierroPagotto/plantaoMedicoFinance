@@ -134,10 +134,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <ShiftTable shifts={shifts} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
         <ShiftCalendar shifts={shifts} />
         {/* NÃO TEM ESSA API AINDA! */}
         {/*<MapPreview nextShift={nextShift} />*/}
