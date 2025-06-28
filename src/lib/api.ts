@@ -6,7 +6,7 @@ class ApiClient {
 
     constructor() {
         this.api = axios.create({
-            baseURL: 'http://127.0.0.1:5000/api',
+            baseURL: 'https://api.medsinc.com.br/api',
             headers: {
                 'Content-Type': 'application/json',
             },
