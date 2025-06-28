@@ -80,7 +80,14 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export function ShiftForm() {
+interface ShiftFormProps {
+  initialData?: any;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+  mode?: 'edit' | 'create';
+}
+
+export function ShiftForm({ initialData, onSuccess, onCancel, mode = 'create' }: ShiftFormProps) {
   const [loading, setLoading] = useState(false);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const { toast } = useToast();
@@ -88,24 +95,35 @@ export function ShiftForm() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      shiftDate: undefined,
-      startTime: '',
-      endTime: '',
-      value: '',
-      specialty: '',
-      hospital_id: '',
-      multipleDates: false,
-      selectedDates: [],
-      paymentDate: undefined,
-    }
+    defaultValues: initialData
+      ? {
+          shiftDate: initialData.date ? new Date(initialData.date) : undefined,
+          endDate: initialData.end_date ? new Date(initialData.end_date) : undefined,
+          startTime: initialData.start_time || '',
+          endTime: initialData.end_time || '',
+          value: initialData.value ? initialData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '',
+          specialty: initialData.specialty || '',
+          hospital_id: initialData.hospital_id ? String(initialData.hospital_id) : '',
+          multipleDates: false,
+          selectedDates: undefined,
+          paymentDate: initialData.payment_date ? new Date(initialData.payment_date) : undefined,
+        }
+      : {
+          shiftDate: undefined,
+          startTime: '',
+          endTime: '',
+          value: '',
+          specialty: '',
+          hospital_id: '',
+          multipleDates: false,
+          selectedDates: [],
+          paymentDate: undefined,
+        },
   });
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      console.log("Enviando dados:", data);
-
       const shiftData: any = {
         start_time: data.startTime,
         end_time: data.endTime,
@@ -118,29 +136,34 @@ export function ShiftForm() {
       if (data.multipleDates && data.selectedDates && data.selectedDates.length > 0) {
         shiftData.date = format(data.selectedDates[0], 'yyyy-MM-dd');
         shiftData.week_days = data.selectedDates.map(day => format(day, 'yyyy-MM-dd'));
-      }
-      else if (data.shiftDate) {
+      } else if (data.shiftDate) {
         shiftData.date = format(data.shiftDate, 'yyyy-MM-dd');
         if (data.endDate) {
           shiftData.end_date = format(data.endDate, 'yyyy-MM-dd');
         }
       }
 
-      await api.createShift(shiftData);
-
-      toast({
-        title: "Plantão registrado com sucesso!",
-        description: "O plantão foi adicionado ao seu calendário.",
-      });
-
-      navigate('/shifts');
-
-      form.reset();
+      if (mode === 'edit' && initialData) {
+        await api.updateShift(initialData.id, shiftData);
+        toast({
+          title: 'Plantão atualizado com sucesso!',
+          description: 'As alterações foram salvas.',
+        });
+        if (onSuccess) onSuccess();
+      } else {
+        await api.createShift(shiftData);
+        toast({
+          title: 'Plantão registrado com sucesso!',
+          description: 'O plantão foi adicionado ao seu calendário.',
+        });
+        navigate('/shifts');
+        form.reset();
+      }
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Erro ao registrar plantão",
-        description: "Tente novamente mais tarde.",
+        variant: 'destructive',
+        title: mode === 'edit' ? 'Erro ao atualizar plantão' : 'Erro ao registrar plantão',
+        description: 'Tente novamente mais tarde.',
       });
     } finally {
       setLoading(false);
@@ -522,8 +545,13 @@ export function ShiftForm() {
           className="w-full md:w-auto"
           disabled={loading}
         >
-          {loading ? "Registrando..." : "Registrar plantão"}
+          {loading ? (mode === 'edit' ? 'Salvando...' : 'Registrando...') : (mode === 'edit' ? 'Salvar alterações' : 'Registrar plantão')}
         </Button>
+        {mode === 'edit' && onCancel && (
+          <Button type="button" variant="ghost" className="w-full md:w-auto ml-2" onClick={onCancel} disabled={loading}>
+            Cancelar
+          </Button>
+        )}
       </form>
     </Form>
   );

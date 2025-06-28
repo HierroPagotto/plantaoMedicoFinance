@@ -1,5 +1,4 @@
-
-import { Calendar, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronRight, Hospital, BadgeCheck } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { isFuture, parseISO } from 'date-fns';
@@ -55,19 +54,24 @@ export function NextPaymentCard({ shifts }: any) {
           {upcomingPayments.map((payment, index) => (
             <div 
               key={payment.id} 
-              className={`py-3 ${index !== upcomingPayments.length - 1 ? 'border-b' : ''}`}
+              className={`py-3 ${index !== upcomingPayments.length - 1 ? 'border-b' : ''} flex flex-col gap-1`}
             >
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="text-lg font-bold">R$ {payment.value}</div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Calendar className="h-4 w-4 text-medical-blue" />
-                    <span>
-                      {formatMonthDate(payment.paymentDate)}
-                    </span>
-                  </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center rounded-full bg-blue-50 text-medical-blue p-2">
+                    <BadgeCheck className="h-4 w-4" />
+                  </span>
+                  <span className="text-lg font-bold text-medical-blue">R$ {payment.value}</span>
                 </div>
-                <div className="text-sm text-muted-foreground">{payment.hospital.name}</div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4 text-medical-blue" />
+                  <span>{formatMonthDate(payment.paymentDate)}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <Hospital className="h-4 w-4 text-medical-blue" />
+                <span className="font-medium">{payment.hospital.name}</span>
+                {/*<span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${payment.status === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{payment.status === 'scheduled' ? 'Agendado' : 'Realizado'}</span>*/}
               </div>
             </div>
           ))}

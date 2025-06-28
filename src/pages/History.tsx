@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import api from '@/lib/api';
+import { ShiftForm } from '@/components/shifts/ShiftForm';
 
 interface Hospital {
   id: number;
@@ -92,6 +93,9 @@ const History = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [shiftToDelete, setShiftToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editShift, setEditShift] = useState<Shift | null>(null);
+  const [editData, setEditData] = useState<any>({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     const fetchShifts = async () => {
@@ -221,6 +225,26 @@ const History = () => {
     document.body.removeChild(link);
   };
 
+  const handleEditChange = (field: string, value: any) => {
+    setEditData((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditSave = async () => {
+    if (!editShift) return;
+    setSavingEdit(true);
+    try {
+      await api.updateShift(editShift.id, editData);
+      setShifts((prev) => prev.map((s) => s.id === editShift.id ? { ...s, ...editData } : s));
+      setEditShift(null);
+      setEditData({});
+      toast({ title: 'Plantão atualizado com sucesso!' });
+    } catch {
+      toast({ title: 'Erro ao atualizar plantão', variant: 'destructive' });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   if (loading) {
     return (
       <AppShell>
@@ -242,7 +266,7 @@ const History = () => {
         </div>
       </div>
 
-      <div className="bg-card border rounded-lg mb-6">
+      {/*<div className="bg-card border rounded-lg mb-6">
         <div className="p-4 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -269,7 +293,7 @@ const History = () => {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </div>*/}
 
       <div className="rounded-md border bg-card overflow-hidden">
         <Table>
@@ -280,7 +304,7 @@ const History = () => {
               <TableHead>Hospital</TableHead>
               <TableHead>Especialidade</TableHead>
               <TableHead>Valor</TableHead>
-              <TableHead>Status</TableHead>
+              {/*<TableHead>Status</TableHead>*/}
               <TableHead>Pagamento</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -313,11 +337,11 @@ const History = () => {
                   </TableCell>
                   <TableCell>{shift.specialty}</TableCell>
                   <TableCell>{formatCurrency(shift.value)}</TableCell>
-                  <TableCell>
+                  {/*<TableCell>
                     <Badge className={statusConfig[shift.status].color}>
                       {statusConfig[shift.status].label}
                     </Badge>
-                  </TableCell>
+                  </TableCell>*/}
                   <TableCell>
                     {formatShortDate(shift.payment_date)}
                   </TableCell>
@@ -333,33 +357,17 @@ const History = () => {
                           <Info className="mr-2 h-4 w-4 text-blue-500" />
                           Detalhes
                         </DropdownMenuItem>
-                        {shift.status === 'scheduled' && (
-                          <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'completed')}>
-                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                            Marcar como realizado
-                          </DropdownMenuItem>
-                        )}
-                        {(shift.status === 'scheduled' || shift.status === 'completed') && (
-                          <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'paid')}>
-                            <DollarSign className="mr-2 h-4 w-4 text-purple-500" />
-                            Marcar como pago
-                          </DropdownMenuItem>
-                        )}
-                        {shift.status === 'scheduled' && (
-                          <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'canceled')}>
-                            <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                            Cancelar plantão
-                          </DropdownMenuItem>
-                        )}
-                        {shift.status !== 'paid' && (
-                          <DropdownMenuItem 
+                        <DropdownMenuItem onClick={() => { setEditShift(shift); setEditData(shift); }}>
+                          <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
                             onClick={() => setShiftToDelete(shift.id)}
                             className="text-red-500"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir plantão
                           </DropdownMenuItem>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -446,6 +454,38 @@ const History = () => {
                 )}
               </DialogFooter>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editShift} onOpenChange={() => setEditShift(null)}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Editar plantão</DialogTitle>
+            <DialogDescription>Altere os campos desejados e salve.</DialogDescription>
+          </DialogHeader>
+          {editShift && (
+            <ShiftForm
+              mode="edit"
+              initialData={editShift}
+              onSuccess={() => {
+                setEditShift(null);
+                // Atualizar lista após edição
+                const fetchShifts = async () => {
+                  try {
+                    setLoading(true);
+                    const response = await api.getShifts();
+                    setShifts(response);
+                  } catch (error) {
+                    console.error('Erro ao buscar plantões:', error);
+                  } finally {
+                    setLoading(false);
+                  }
+                };
+                fetchShifts();
+              }}
+              onCancel={() => setEditShift(null)}
+            />
           )}
         </DialogContent>
       </Dialog>

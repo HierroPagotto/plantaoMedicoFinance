@@ -115,7 +115,7 @@ export function ShiftTable({ shifts }: ShiftTableProps) {
     <Card className="col-span-1 md:col-span-3">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">Últimos plantões</CardTitle>
-        <Select
+        {/*<Select
           defaultValue="all"
           onValueChange={(value: Shift['status'] | 'all') => setFilter(value)}
         >
@@ -129,7 +129,7 @@ export function ShiftTable({ shifts }: ShiftTableProps) {
             <SelectItem value="paid">Pagos</SelectItem>
             <SelectItem value="canceled">Cancelados</SelectItem>
           </SelectContent>
-        </Select>
+        </Select>*/}
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">

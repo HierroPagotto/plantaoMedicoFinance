@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { formatISODate, formatMonthDate } from '@/lib/date-utils';
@@ -25,33 +24,35 @@ export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
     : [];
 
   return (
-    <Card className="col-span-1 md:col-span-2">
+    <Card className="">
       <CardHeader>
         <CardTitle className="text-base">Calendário de plantões</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            className={cn("p-3 rounded-md border pointer-events-auto")}
-            locale={ptBR}
-            modifiers={{
-              highlighted: (date) => {
-                const dateStr = formatISODate(date);
-                return shiftDates[dateStr] || false;
-              }
-            }}
-            modifiersStyles={{
-              highlighted: {
-                fontWeight: 'bold',
-                backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                color: '#0EA5E9',
-                borderRadius: '4px',
-              }
-            }}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-[auto,1fr] gap-4 items-start">
+          <div className="w-full max-w-xs overflow-hidden">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className={cn("p-3 rounded-md border pointer-events-auto w-full")}
+              locale={ptBR}
+              modifiers={{
+                highlighted: (date) => {
+                  const dateStr = formatISODate(date);
+                  return shiftDates[dateStr] || false;
+                }
+              }}
+              modifiersStyles={{
+                highlighted: {
+                  fontWeight: 'bold',
+                  backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                  color: '#0EA5E9',
+                  borderRadius: '4px',
+                }
+              }}
+            />
+          </div>
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-muted-foreground">

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import {
   SidebarProvider,
@@ -10,10 +9,11 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-  SidebarInset
+  SidebarInset,
+  SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Home, Calendar, DollarSign, History, Settings, LogOut } from 'lucide-react';
+import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import Header from './Header';
@@ -26,10 +26,18 @@ export const AppShell = ({ children }: AppShellProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
 
-  const [user, setUser] = useState<{ name: string; specialty: string; photo_url?: string }>({
+  const [user, setUser] = useState<{ name: string; specialty: string; photo_url?: string; is_admin?: boolean }>({
     name: 'Carregando...',
     specialty: '...',
-    photo_url: undefined
+    photo_url: undefined,
+    is_admin: false
+  });
+
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'light';
+    }
+    return 'light';
   });
 
   useEffect(() => {
@@ -40,7 +48,8 @@ export const AppShell = ({ children }: AppShellProps) => {
         setUser({
           name: parsed.name || 'Desconhecido(a)',
           specialty: parsed.main_specialty || '...',
-          photo_url: parsed.photo_url || undefined
+          photo_url: parsed.photo_url || undefined,
+          is_admin: parsed.is_admin || false
         });
       } catch {
         console.error('Erro ao carregar os dados do usuário');
@@ -48,13 +57,29 @@ export const AppShell = ({ children }: AppShellProps) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const root = window.document.documentElement;
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+      localStorage.setItem('theme', theme);
+    }
+  }, [theme]);
+
   const links = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Plantões', href: '/shifts', icon: Calendar },
     { name: 'Financeiro', href: '/finance', icon: DollarSign },
     { name: 'Histórico', href: '/history', icon: History },
     { name: 'Configurações', href: '/settings', icon: Settings },
-    { name: 'Perfil Médico', href: '/doctor-profile', icon: User }
+    { name: 'Perfil Médico', href: '/doctor-profile', icon: User },
+    ...(user.is_admin ? [
+      { name: 'Admin: Usuários', href: '/admin/users', icon: User },
+      { name: 'Admin: Hospitais', href: '/admin/hospitals', icon: Home }
+    ] : [])
   ];
 
   const isActive = (path: string) => {
@@ -106,6 +131,18 @@ export const AppShell = ({ children }: AppShellProps) => {
                 </div>
               </Link>
             </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start mt-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5 mr-2" />
+              ) : (
+                <Moon className="h-5 w-5 mr-2" />
+              )}
+              <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
+            </Button>
           </SidebarHeader>
 
           <SidebarContent>

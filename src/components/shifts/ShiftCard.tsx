@@ -135,9 +135,9 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={cn("font-normal", status.color)}>
+            {/*<Badge className={cn("font-normal", status.color)}>
               {status.label}
-            </Badge>
+            </Badge>*/}
             
             {shift.status !== 'paid' && (
               <DropdownMenu>
@@ -147,7 +147,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {shift.status === 'scheduled' && (
+                  {/*{shift.status === 'scheduled' && (
                     <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'completed')}>
                       <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                       Marcar como realizado
@@ -164,7 +164,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
                       <XCircle className="mr-2 h-4 w-4 text-red-500" />
                       Cancelar plantão
                     </DropdownMenuItem>
-                  )}
+                  )}*/}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">

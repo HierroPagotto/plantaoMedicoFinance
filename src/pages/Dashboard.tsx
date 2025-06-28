@@ -110,7 +110,7 @@ const Dashboard = () => {
         <StatCard
           title="Plantões agendados"
           value={stats.scheduled_shifts.toString()}
-          description="Próximos 30 dias"
+          description="No mês Atual"
           icon={<Calendar />}
         />
         <StatCard
@@ -128,19 +128,21 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <FinancialChart />
-        <NextPaymentCard shifts={shifts} />
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="md:col-span-3">
+          <FinancialChart />
+        </div>
+        <div className="md:col-span-2">
+          <ShiftCalendar shifts={shifts} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
         <ShiftTable shifts={shifts} />
-      </div>
+      </div> */}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <ShiftCalendar shifts={shifts} />
-        {/* NÃO TEM ESSA API AINDA! */}
-        {/*<MapPreview nextShift={nextShift} />*/}
+      <div className="w-full mt-6">
+        <NextPaymentCard shifts={shifts} />
       </div>
     </AppShell>
   );

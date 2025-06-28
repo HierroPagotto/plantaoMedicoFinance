@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import PasswordReset from "./pages/PasswordReset";
 import Dashboard from "./pages/Dashboard";
 import Shifts from "./pages/Shifts";
 import NewShift from "./pages/NewShift";
@@ -18,8 +18,19 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Logout from "./components/auth/Logout";
 import DoctorProfilePublic from "./pages/DoctorProfilePublic";
+import AdminUsers from './pages/Admin/Users';
+import AdminHospitals from './pages/Admin/Hospitals';
 
 const queryClient = new QueryClient();
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const userData = typeof window !== 'undefined' ? localStorage.getItem('userData') : null;
+  const isAdmin = userData && JSON.parse(userData).is_admin;
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -32,6 +43,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
           <Route path="/register" element={<Register />} />
+          <Route path="/password-reset" element={<PasswordReset />} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
@@ -42,6 +54,8 @@ const App = () => (
           <Route path="/doctor-registration" element={<ProtectedRoute><DoctorRegistration /></ProtectedRoute>} />
           <Route path="/doctor-profile" element={<ProtectedRoute><DoctorProfile /></ProtectedRoute>} />
           <Route path="/doctor-profile/:id" element={<DoctorProfilePublic />} />
+          <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><AdminUsers /></AdminRoute></ProtectedRoute>} />
+          <Route path="/admin/hospitals" element={<ProtectedRoute><AdminRoute><AdminHospitals /></AdminRoute></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

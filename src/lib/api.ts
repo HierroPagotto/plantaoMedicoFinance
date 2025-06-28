@@ -146,6 +146,50 @@ class ApiClient {
         const response = await this.api.delete(`/shifts/${shiftId}`);
         return response.data;
     }
+
+    async getAdminUsers() {
+        const response = await this.api.get('/admin/users');
+        return response.data;
+    }
+
+    async deleteAdminUser(userId: string) {
+        const response = await this.api.delete(`/admin/users/${userId}`);
+        return response.data;
+    }
+
+    async getAdminHospitals() {
+        const response = await this.api.get('/admin/hospitals');
+        return response.data;
+    }
+
+    async deleteAdminHospital(hospitalId: string) {
+        const response = await this.api.delete(`/admin/hospitals/${hospitalId}`);
+        return response.data;
+    }
+
+    async updateShift(shiftId: string | number, data: any) {
+        const response = await this.api.put(`/shifts/${shiftId}`, data);
+        return response.data;
+    }
+
+    async requestPasswordReset(email: string) {
+        const response = await this.api.post('/password-reset/request', { email });
+        return response.data;
+    }
+
+    async verifyPasswordResetCode(email: string, code: string) {
+        const response = await this.api.post('/password-reset/verify', { email, code });
+        return response.data;
+    }
+
+    async changePassword(email: string, code: string, newPassword: string) {
+        const response = await this.api.post('/password-reset/change', { 
+            email, 
+            code, 
+            new_password: newPassword 
+        });
+        return response.data;
+    }
 }
 
 export const api = new ApiClient();

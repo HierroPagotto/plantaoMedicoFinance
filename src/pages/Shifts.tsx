@@ -188,7 +188,7 @@ const Shifts = () => {
           <h2 className="font-medium">Filtros</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="space-y-2">
+          {/*<div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
             <Select
               value={filters.status}
@@ -205,7 +205,7 @@ const Shifts = () => {
                 <SelectItem value="canceled">Cancelados</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </div>*/}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Especialidade</label>

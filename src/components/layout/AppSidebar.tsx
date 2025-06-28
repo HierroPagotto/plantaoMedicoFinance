@@ -1,8 +1,7 @@
-
-import { Home, Calendar, DollarSign, History, ChevronLeft, LogOut, Settings } from 'lucide-react';
+import { Home, Calendar, DollarSign, History, ChevronLeft, LogOut, Settings, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface AppSidebarProps {
@@ -16,6 +15,25 @@ export const AppSidebar = ({ isOpen, setIsOpen }: AppSidebarProps) => {
     name: 'Dr. João Silva',
     specialty: 'Cardiologia'
   });
+
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const root = window.document.documentElement;
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+      localStorage.setItem('theme', theme);
+    }
+  }, [theme]);
 
   const links = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -99,7 +117,19 @@ export const AppSidebar = ({ isOpen, setIsOpen }: AppSidebarProps) => {
         </ul>
       </nav>
 
-      <div className="p-4 mt-auto border-t border-border">
+      <div className="p-4 mt-auto border-t border-border flex flex-col gap-2">
+        <Button
+          variant="ghost"
+          className={cn("w-full justify-start text-muted-foreground hover:text-foreground", !isOpen && "justify-center")}
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        >
+          {theme === 'dark' ? (
+            <Sun className={cn("h-5 w-5", isOpen && "mr-3")}/>
+          ) : (
+            <Moon className={cn("h-5 w-5", isOpen && "mr-3")}/>
+          )}
+          {isOpen && <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>}
+        </Button>
         <Button
           variant="ghost"
           className={cn("w-full justify-start text-muted-foreground hover:text-foreground", !isOpen && "justify-center")}

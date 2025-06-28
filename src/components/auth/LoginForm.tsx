@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 const formSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -87,6 +87,12 @@ export function LoginForm() {
             </FormItem>
           )}
         />
+
+        <div className="text-right">
+          <Button variant="link" className="p-0 text-sm text-gray-600 hover:text-gray-800" asChild>
+            <Link to="/password-reset">Esqueceu sua senha?</Link>
+          </Button>
+        </div>
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Entrando..." : "Entrar"}
