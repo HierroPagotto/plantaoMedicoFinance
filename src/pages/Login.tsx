@@ -7,43 +7,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0EA5E9] to-[#6EE7B7] flex items-center justify-center">
       <div className="container h-full flex">
-        {/* Lado esquerdo - Depoimentos */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="flex-1 p-8 md:p-12"
-        >
-          <div className="relative bg-gradient-to-br from-[#0EA5E9]/10 to-[#6EE7B7]/10 rounded-2xl border border-white/20 shadow-xl p-10">
-            <div className="h-full flex flex-col justify-center">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold mb-6">O que os médicos dizem</h2>
-                <div className="space-y-8">
-                  <div className="p-6 bg-white/5 rounded-xl">
-                    <blockquote className="text-xl italic text-gray-700">
-                      "O Plantão Médico revolucionou a forma como organizo minha agenda e acompanho meus rendimentos. Não consigo mais trabalhar sem ele!"
-                    </blockquote>
-                    <div className="mt-4">
-                      <span className="font-medium text-gray-800">Dr. Carlos Ferreira</span>
-                      <div className="text-sm text-gray-600">Cardiologista</div>
-                    </div>
-                  </div>
-                  <div className="p-6 bg-white/5 rounded-xl">
-                    <blockquote className="text-xl italic text-gray-700">
-                      "Finalmente um sistema que me ajuda a gerenciar meus plantões de forma profissional e intuitiva. Recomendo para todos os colegas!"
-                    </blockquote>
-                    <div className="mt-4">
-                      <span className="font-medium text-gray-800">Dr. Ana Silva</span>
-                      <div className="text-sm text-gray-600">Pediatria</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
 
-        {/* Lado direito - Login */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
