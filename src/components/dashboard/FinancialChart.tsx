@@ -19,48 +19,66 @@ const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "
 
 interface MonthlyData {
   month: number;
-  received: number;
   expected: number;
   shifts: number;
   avg_per_shift: number;
 }
 
-interface FinancialData {
-  monthly_data: MonthlyData[];
-  annual_totals: {
-    total_received: number;
-    total_expected: number;
-    total_shifts: number;
-    avg_per_shift: number;
-  };
-  year: number;
+interface FinancialChartProps {
+  shifts?: Array<{
+    paymentDate: Date;
+    value: string | number;
+    status: string;
+  }>;
 }
 
-export function FinancialChart() {
-  const [data, setData] = useState<MonthlyData[]>([]);
+export function FinancialChart({ shifts }: FinancialChartProps) {
+  const [data, setData] = useState<any[]>([]);
   const [chartType, setChartType] = useState('revenue');
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.getFinancialFull(new Date().getFullYear());
-        const apiData = response.data.monthly_data;
-        
-        const formattedData = apiData.map(item => ({
-          month: months[item.month - 1],
-          recebido: item.received,
-          previsto: item.expected,
-          plantoes: item.shifts
-        }));
-        
-        setData(formattedData);
-      } catch (error) {
-        console.error('Erro ao buscar dados financeiros:', error);
-      }
-    };
+    if (!shifts) return;
+    const monthlyMap: Record<string, { ganhos: number; plantoes: number }> = {};
+    let minYear = new Date().getFullYear();
+    let maxYear = new Date().getFullYear();
 
-    fetchData();
-  }, []);
+    shifts.forEach(shift => {
+      let paymentDate = shift.paymentDate && !isNaN(new Date(shift.paymentDate).getTime()) ? new Date(shift.paymentDate) : null;
+      let shiftDate = shift.date && !isNaN(new Date(shift.date).getTime()) ? new Date(shift.date) : null;
+      if (paymentDate) {
+        const month = paymentDate.getMonth();
+        const year = paymentDate.getFullYear();
+        const key = `${year}-${month}`;
+        let valor = typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : shift.value;
+        if (isNaN(valor)) valor = 0;
+        if (!monthlyMap[key]) {
+          monthlyMap[key] = { ganhos: 0, plantoes: 0 };
+        }
+        monthlyMap[key].ganhos += valor;
+      }
+      if (shiftDate) {
+        const month = shiftDate.getMonth();
+        const year = shiftDate.getFullYear();
+        const key = `${year}-${month}`;
+        if (!monthlyMap[key]) {
+          monthlyMap[key] = { ganhos: 0, plantoes: 0 };
+        }
+        monthlyMap[key].plantoes += 1;
+      }
+    });
+
+    const currentYear = new Date().getFullYear();
+    const fullData: Array<{ month: string; ganhos: number; plantoes: number }> = [];
+    for (let month = 0; month < 12; month++) {
+      const key = `${currentYear}-${month}`;
+      fullData.push({
+        month: months[month],
+        ganhos: monthlyMap[key]?.ganhos || 0,
+        plantoes: monthlyMap[key]?.plantoes || 0,
+      });
+    }
+    setData(fullData);
+  }, [shifts]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -91,11 +109,11 @@ export function FinancialChart() {
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart
               data={data}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 30, left: 24, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis dataKey="month" />
-              <YAxis tickFormatter={formatCurrency} />
+              <YAxis tickFormatter={formatCurrency} width={80} />
               <Tooltip
                 formatter={(value: number) => [formatCurrency(value), ""]}
                 labelFormatter={(label) => `Mês: ${label}`}
@@ -103,21 +121,11 @@ export function FinancialChart() {
               <Legend />
               <Area
                 type="monotone"
-                dataKey="recebido"
-                name="Recebido"
-                stroke="#0EA5E9"
-                fill="#0ea5e920"
-                strokeWidth={2}
-                activeDot={{ r: 8 }}
-              />
-              <Area
-                type="monotone"
-                dataKey="previsto"
-                name="Previsto"
+                dataKey="ganhos"
+                name="Ganhos"
                 stroke="#6EE7B7"
                 fill="#6ee7b720"
                 strokeWidth={2}
-                strokeDasharray="5 5"
                 activeDot={{ r: 8 }}
               />
             </AreaChart>

@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/layout/AppShell';
+import { FinancialChart } from '@/components/dashboard/FinancialChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, FileText } from 'lucide-react';
@@ -46,12 +47,27 @@ interface FinancialData {
 }
 
 const Finance = () => {
+  const [shifts, setShifts] = useState<any[]>([]);
   const [year, setYear] = useState(new Date().getFullYear());
   const [chartType, setChartType] = useState('revenue');
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        const response = await api.getShifts();
+        const formattedShifts = response.map((shift: any) => ({
+          paymentDate: new Date(shift.payment_date || shift.paymentDate),
+          date: new Date(shift.date),
+          value: shift.value || shift.ganhos || 0,
+          status: shift.status,
+        }));
+        setShifts(formattedShifts);
+      } catch (err) {
+      }
+    };
+    fetchShifts();
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -78,7 +94,6 @@ const Finance = () => {
   const exportToCSV = () => {
     if (!financialData) return;
 
-    // Cabeçalhos do CSV
     const headers = ['Mês', 'Plantões', 'Recebido', 'Previsto', 'Média por plantão'];
 
 
@@ -142,31 +157,12 @@ const Finance = () => {
     <AppShell>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Financeiro</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToCSV}>
-            <FileText className="mr-2 h-4 w-4" /> Exportar relatório
-          </Button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total recebido</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(total_received)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ano de {financialData.year}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total previsto</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de ganhos</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -196,7 +192,9 @@ const Finance = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(avg_per_shift)}
+              {financialData.annual_totals.total_shifts > 0
+                ? formatCurrency(financialData.annual_totals.total_expected / financialData.annual_totals.total_shifts)
+                : '-'}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Ano de {financialData.year}
@@ -205,96 +203,9 @@ const Finance = () => {
         </Card>
       </div>
 
-      <Card className="mb-6">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle>Análise financeira anual</CardTitle>
-          <div className="flex items-center space-x-2">
-            <Select
-              value={year.toString()}
-              onValueChange={(value) => setYear(parseInt(value))}
-            >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Ano" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={`${year - 1}`}>{year - 1}</SelectItem>
-                <SelectItem value={`${year}`}>{year}</SelectItem>
-                <SelectItem value={`${year + 1}`}>{year + 1}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={chartType} onValueChange={setChartType}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Tipo de gráfico" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="revenue">Receita</SelectItem>
-                <SelectItem value="shifts">Plantões</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {chartType === 'revenue' ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <AreaChart
-                data={chartData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={formatCurrency} />
-                <Tooltip
-                  formatter={(value: number) => [formatCurrency(value), ""]}
-                  labelFormatter={(label) => `Mês: ${label}`}
-                />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="recebido"
-                  name="Recebido"
-                  stroke="#0EA5E9"
-                  fill="#0ea5e920"
-                  strokeWidth={2}
-                  activeDot={{ r: 8 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="previsto"
-                  name="Previsto"
-                  stroke="#6EE7B7"
-                  fill="#6ee7b720"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  activeDot={{ r: 8 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={chartData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value: number) => [`${value} plantões`, "Quantidade"]}
-                  labelFormatter={(label) => `Mês: ${label}`}
-                />
-                <Legend />
-                <Bar
-                  dataKey="plantoes"
-                  name="Quantidade de plantões"
-                  fill="#8B5CF6"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      <div className="mb-6">
+        <FinancialChart shifts={shifts} />
+      </div>
 
       <Card>
         <CardHeader>
@@ -312,10 +223,7 @@ const Finance = () => {
                     Plantões
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Recebido
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Previsto
+                    Ganhos
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                     Média por plantão
@@ -323,38 +231,41 @@ const Finance = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card">
-                {financialData.monthly_data.map((monthData) => (
-                  <tr key={monthData.month}>
-                    <td className="px-4 py-3 text-sm">{months[monthData.month - 1]}</td>
-                    <td className="px-4 py-3 text-sm">{monthData.shifts}</td>
-                    <td className="px-4 py-3 text-sm font-medium">
-                      {formatCurrency(monthData.received)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {formatCurrency(monthData.expected)}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {formatCurrency(monthData.avg_per_shift)}
-                    </td>
-                  </tr>
-                ))}
+                {Array.from({ length: 12 }).map((_, monthIdx) => {
+                  // Calcular ganhos por mês usando shifts (igual ao FinancialChart)
+                  const ganhos = shifts
+                    .filter(shift => shift.paymentDate.getMonth() === monthIdx && shift.paymentDate.getFullYear() === year)
+                    .reduce((sum, shift) => sum + (typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : Number(shift.value)), 0);
+                  const plantoes = shifts.filter(shift => shift.paymentDate.getMonth() === monthIdx && shift.paymentDate.getFullYear() === year).length;
+                  return (
+                    <tr key={monthIdx}>
+                      <td className="px-4 py-3 text-sm">{months[monthIdx]}</td>
+                      <td className="px-4 py-3 text-sm">{plantoes}</td>
+                      <td className="px-4 py-3 text-sm font-medium">{formatCurrency(ganhos)}</td>
+                      <td className="px-4 py-3 text-sm">{plantoes > 0 ? formatCurrency(ganhos / plantoes) : '-'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="bg-muted/50 font-medium">
                   <td className="px-4 py-3 text-sm">Total</td>
-                  <td className="px-4 py-3 text-sm">{total_shifts}</td>
-                  <td className="px-4 py-3 text-sm">{formatCurrency(total_received)}</td>
-                  <td className="px-4 py-3 text-sm">{formatCurrency(total_expected)}</td>
-                  <td className="px-4 py-3 text-sm">{formatCurrency(avg_per_shift)}</td>
+                  <td className="px-4 py-3 text-sm">{(() => {
+                    const totalPlantoes = shifts.filter(shift => shift.paymentDate.getFullYear() === year).length;
+                    return totalPlantoes;
+                  })()}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{(() => {
+                    const totalGanhos = shifts.filter(shift => shift.paymentDate.getFullYear() === year).reduce((sum, shift) => sum + (typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : Number(shift.value)), 0);
+                    return formatCurrency(totalGanhos);
+                  })()}</td>
+                  <td className="px-4 py-3 text-sm">{(() => {
+                    const totalPlantoes = shifts.filter(shift => shift.paymentDate.getFullYear() === year).length;
+                    const totalGanhos = shifts.filter(shift => shift.paymentDate.getFullYear() === year).reduce((sum, shift) => sum + (typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : Number(shift.value)), 0);
+                    return totalPlantoes > 0 ? formatCurrency(totalGanhos / totalPlantoes) : '-';
+                  })()}</td>
                 </tr>
               </tfoot>
             </table>
-          </div>
-
-          <div className="flex justify-end mt-4">
-            <Button variant="outline" size="sm" onClick={exportToCSV}>
-              <Download className="mr-2 h-4 w-4" /> Exportar como Excel
-            </Button>
           </div>
         </CardContent>
       </Card>
