@@ -108,7 +108,7 @@ const Dashboard = () => {
           icon={<DollarSign />}
         />
         <StatCard
-          title="Plantões agendados"
+          title="Plantões"
           value={stats.scheduled_shifts.toString()}
           description="No mês Atual"
           icon={<Calendar />}
@@ -121,16 +121,66 @@ const Dashboard = () => {
         />
         <StatCard
           title="Valor/hora médio"
-          value={formatCurrency(stats.avg_hourly_rate)}
-          description="Últimos 3 meses"
+          value={(() => {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            const doneShifts = shifts.filter(shift => {
+              const status = (shift.status || '').toLowerCase();
+              const dateObj = shift.date instanceof Date ? shift.date : new Date(shift.date);
+              return (status === 'completed' || status === 'paid') &&
+                dateObj.getMonth() === currentMonth &&
+                dateObj.getFullYear() === currentYear;
+            });
+            
+            let totalValue = 0;
+            let totalHours = 0;
+            for (const shift of doneShifts) {
+              let valor = typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : Number(shift.value);
+              if (!isNaN(valor)) totalValue += valor;
+              let hours = 0;
+              
+              if (shift.start_time && shift.end_time) {
+                const [sh, sm] = shift.start_time.split(':').map(Number);
+                const [eh, em] = shift.end_time.split(':').map(Number);
+                if (!isNaN(sh) && !isNaN(sm) && !isNaN(eh) && !isNaN(em)) {
+                  let diff = (eh + em/60) - (sh + sm/60);
+                  if (diff < 0) diff += 24;
+                  hours = diff;
+                }
+              }
+              if (hours > 0) totalHours += hours;
+            }
+            
+            if (totalValue > 0 && totalHours > 0) return formatCurrency(totalValue / totalHours);
+            if (stats.hours_worked && stats.monthly_earnings) {
+              const h = Number(stats.hours_worked);
+              const v = Number(stats.monthly_earnings);
+              if (h > 0 && v > 0) return formatCurrency(v / h);
+            }
+            if (stats.avg_hourly_rate) return formatCurrency(stats.avg_hourly_rate);
+            return '-';
+          })()}
+          description="Neste mês"
           icon={<DollarSign />}
-          trend={{ value: 5, positive: true }}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div className="md:col-span-3">
-          <FinancialChart />
+          <FinancialChart shifts={shifts
+            .map((shift) => ({
+              paymentDate: new Date(shift.payment_date || shift.paymentDate),
+              date: new Date(shift.date),
+              value: shift.value || shift.ganhos || 0,
+              status: shift.status,
+            }))
+            .filter((shift) =>
+              shift.paymentDate && !isNaN(shift.paymentDate.getTime()) &&
+              shift.paymentDate.getFullYear() === new Date().getFullYear()
+            )
+          } />
         </div>
         <div className="md:col-span-2">
           <ShiftCalendar shifts={shifts} />
