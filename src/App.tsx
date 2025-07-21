@@ -20,6 +20,7 @@ import Logout from "./components/auth/Logout";
 import DoctorProfilePublic from "./pages/DoctorProfilePublic";
 import AdminUsers from './pages/Admin/Users';
 import AdminHospitals from './pages/Admin/Hospitals';
+import LandingPage from './pages/LandingPage';
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
           <Route path="/register" element={<Register />} />

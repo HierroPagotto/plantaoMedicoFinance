@@ -22,6 +22,13 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { api } from '@/lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ShiftForm } from '@/components/shifts/ShiftForm';
+import { Badge } from '@/components/ui/badge';
+import { Info, CheckCircle } from 'lucide-react';
+import type { Shift } from '@/types/shift';
+import { formatShortDate } from '@/lib/date-utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type FilterOptions = {
   status: string;
@@ -54,6 +61,14 @@ type ApiShift = {
   updated_at: string;
 };
 
+const statusConfig: Record<string, { label: string; color: string }> = {
+  scheduled: { label: 'Agendado', color: 'bg-blue-100 text-blue-800' },
+  completed: { label: 'Realizado', color: 'bg-green-100 text-green-800' },
+  paid: { label: 'Pago', color: 'bg-purple-100 text-purple-800' },
+  canceled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+  cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+};
+
 const Shifts = () => {
   const [shifts, setShifts] = useState<ShiftProps[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +79,10 @@ const Shifts = () => {
     dateRange: undefined,
     search: '',
   });
+  const [selectedShift, setSelectedShift] = useState<ShiftProps | null>(null);
+  const [editShift, setEditShift] = useState<ShiftProps | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   const specialties = [
     'Cardiologia',
@@ -131,6 +150,31 @@ const Shifts = () => {
     );
   };
 
+  const handleSelect = (id: string, checked: boolean) => {
+    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(i => i !== id));
+  };
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(filteredShifts.map(s => s.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+  const handleBulkDelete = async () => {
+    if (!window.confirm('Tem certeza que deseja deletar os plantões selecionados?')) return;
+    setDeleting(true);
+    try {
+      const idsNum = selectedIds.map(id => Number(id));
+      await api.bulkDeleteShifts(idsNum);
+      setShifts(prev => prev.filter(s => !selectedIds.includes(s.id)));
+      setSelectedIds([]);
+    } catch {
+      alert('Erro ao deletar plantões.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredShifts = shifts.filter(shift => {
     if (filters.status !== 'all' && shift.status !== filters.status) return false;
 
@@ -174,6 +218,11 @@ const Shifts = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold">Plantões</h1>
         <div className="flex items-center space-x-2">
+          {selectedIds.length > 0 && (
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={deleting}>
+              {deleting ? 'Deletando...' : `Deletar selecionados (${selectedIds.length})`}
+            </Button>
+          )}
           <Button asChild>
             <Link to="/shifts/new">
               <Plus className="mr-2 h-4 w-4" /> Novo plantão
@@ -269,19 +318,107 @@ const Shifts = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredShifts.length > 0 ? (
-          filteredShifts.map((shift) => (
-            <ShiftCard 
-              key={shift.id} 
-              shift={shift} 
-              onStatusChange={handleStatusChange}
-            />
-          ))
+          <>
+            <div className="col-span-full flex items-center gap-2 mb-2">
+              <Checkbox
+                checked={selectedIds.length === filteredShifts.length && filteredShifts.length > 0}
+                indeterminate={selectedIds.length > 0 && selectedIds.length < filteredShifts.length}
+                onCheckedChange={checked => handleSelectAll(!!checked)}
+                id="select-all-shifts"
+              />
+              <label htmlFor="select-all-shifts" className="text-sm">Selecionar todos</label>
+            </div>
+            {filteredShifts.map((shift) => (
+              <ShiftCard
+                key={shift.id}
+                shift={shift}
+                onStatusChange={handleStatusChange}
+                onShowDetails={() => setSelectedShift(shift)}
+                onEdit={() => setEditShift(shift)}
+                checkbox={
+                  <Checkbox
+                    checked={selectedIds.includes(shift.id)}
+                    onCheckedChange={checked => handleSelect(shift.id, !!checked)}
+                    className="mr-2"
+                  />
+                }
+              />
+            ))}
+          </>
         ) : (
           <div className="col-span-full flex items-center justify-center h-40 bg-muted/30 rounded-lg">
             <p className="text-muted-foreground">Nenhum plantão encontrado com os filtros aplicados.</p>
           </div>
         )}
       </div>
+      {/* Dialog de Detalhes */}
+      <Dialog open={!!selectedShift} onOpenChange={() => setSelectedShift(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do plantão</DialogTitle>
+            <DialogDescription>
+              Informações completas sobre o plantão
+            </DialogDescription>
+          </DialogHeader>
+          {selectedShift && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Data</h4>
+                  <p>
+                    {formatShortDate(selectedShift.date)}
+                    {selectedShift.endDate && (
+                      <span className="text-muted-foreground"> até {formatShortDate(selectedShift.endDate)}</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Horário</h4>
+                  <p>{selectedShift.startTime} - {selectedShift.endTime}</p>
+                </div>
+                <div className="col-span-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Hospital</h4>
+                  <p>{selectedShift.hospital.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedShift.hospital.address}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Especialidade</h4>
+                  <p>{selectedShift.specialty}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Valor</h4>
+                  <p className="font-medium">{selectedShift.value}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Data para pagamento</h4>
+                  <p>{formatShortDate(selectedShift.paymentDate)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* Dialog de Edição */}
+      <Dialog open={!!editShift} onOpenChange={() => setEditShift(null)}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Editar plantão</DialogTitle>
+            <DialogDescription>Altere os campos desejados e salve.</DialogDescription>
+          </DialogHeader>
+          {editShift && (
+            <ShiftForm
+              mode="edit"
+              initialData={editShift}
+              onSuccess={() => {
+                setEditShift(null);
+                // Atualizar lista após edição
+                // fetchShifts();
+              }}
+              onCancel={() => setEditShift(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 };

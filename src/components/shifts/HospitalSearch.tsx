@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { MapPin, Search, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 export type Hospital = {
   id?: number | string;
@@ -33,6 +34,9 @@ export function HospitalSearch({ value, onChange, onCreateNew, onSearchResults }
   const { toast } = useToast();
   const debounceTimer = useRef<NodeJS.Timeout>();
   const initialLoad = useRef(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalHospital, setModalHospital] = useState({ name: '', address: '' });
+  const [modalLoading, setModalLoading] = useState(false);
 
   const mapApiHospitalToComponent = useCallback((apiHospital: any): Hospital => {
     return {
@@ -106,54 +110,40 @@ export function HospitalSearch({ value, onChange, onCreateNew, onSearchResults }
   }, [search, open, fetchHospitals]);
 
   const handleCreateNewHospital = async () => {
-    if (!search.trim()) return;
+    // Ao clicar no +, abrir modal em vez de criar direto
+    setModalOpen(true);
+    setModalHospital({ name: search, address: '' });
+  };
 
+  const handleModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalHospital.name.trim() || !modalHospital.address.trim()) {
+      toast({ title: 'Preencha todos os campos.' });
+      return;
+    }
+    setModalLoading(true);
     try {
       const newHospital = {
-        name: search,
-        address: "Endereço não especificado",
-        latitude: 0,
-        longitude: 0
+        name: modalHospital.name,
+        address: modalHospital.address,
+        latitude: 0.0,
+        longitude: 0.0
       };
-
-      if (onCreateNew) {
-        onCreateNew(mapApiHospitalToComponent({
-          ...newHospital,
-          id: 'new'
-        }));
-      } else {
-        await api.createHospital(newHospital);
-
-        const response = await api.getHospitals();
-        const hospitals = response.data || response;
-        const mappedHospitals = hospitals.map(mapApiHospitalToComponent);
-
-        setPredictions(mappedHospitals);
-
-        if (onSearchResults) {
-          onSearchResults(mappedHospitals);
-        }
-
-        const newlyCreatedHospital = mappedHospitals.find(h => h.name === search) || mappedHospitals[mappedHospitals.length - 1];
-
-        if (newlyCreatedHospital) {
-          onChange(newlyCreatedHospital);
-        }
-      }
-
-      setOpen(false);
+      await api.createHospital(newHospital);
+      const response = await api.getHospitals();
+      const hospitals = response.data || response;
+      const mappedHospitals = hospitals.map(mapApiHospitalToComponent);
+      setPredictions(mappedHospitals);
+      if (onSearchResults) onSearchResults(mappedHospitals);
+      const newlyCreatedHospital = mappedHospitals.find(h => h.name === modalHospital.name) || mappedHospitals[mappedHospitals.length - 1];
+      if (newlyCreatedHospital) onChange(newlyCreatedHospital);
+      setModalOpen(false);
       setSearch('');
-      toast({
-        title: "Hospital criado",
-        description: "O novo hospital foi adicionado com sucesso.",
-      });
+      toast({ title: 'Hospital criado', description: 'O novo hospital foi adicionado com sucesso.' });
     } catch (error) {
-      console.error('Erro ao criar hospital:', error);
-      toast({
-        title: "Erro ao criar hospital",
-        description: "Não foi possível criar o novo hospital.",
-        variant: "destructive"
-      });
+      toast({ title: 'Erro ao criar hospital', description: 'Não foi possível criar o novo hospital.', variant: 'destructive' });
+    } finally {
+      setModalLoading(false);
     }
   };
 
@@ -164,79 +154,126 @@ export function HospitalSearch({ value, onChange, onCreateNew, onSearchResults }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
-        >
-          {value ? value.name : "Buscar hospital ou clínica"}
-          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command>
-          <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            <Input
-              placeholder="Buscar hospitais..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0"
-            />
-          </div>
-          <CommandList>
-            {loading && initialLoad.current ? (
-              <div className="flex items-center justify-center py-6">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                <span className="ml-2 text-sm text-muted-foreground">Carregando hospitais...</span>
+    <div className="relative w-full">
+      <div className="flex w-full gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between"
+            >
+              {value ? value.name : "Buscar hospital ou clínica"}
+              <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0" align="start">
+            <Command>
+              <div className="flex items-center border-b px-3 gap-2">
+                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                <Input
+                  placeholder="Buscar hospitais..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0"
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="ml-1 text-medical-teal hover:bg-medical-teal/10"
+                  onClick={handleCreateNewHospital}
+                  title="Cadastrar novo hospital"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
               </div>
-            ) : loading ? (
-              <div className="flex items-center justify-center py-6">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                <span className="ml-2 text-sm text-muted-foreground">Buscando hospitais...</span>
-              </div>
-            ) : (
-              <>
-                <CommandEmpty>Nenhum hospital encontrado.</CommandEmpty>
-                <CommandGroup heading="Hospitais e Clínicas">
-                  {predictions.map((hospital) => (
-                    <CommandItem
-                      key={hospital.id || `${hospital.name}-${hospital.location.lat}-${hospital.location.lng}`}
-                      value={hospital.name}
-                      onSelect={() => handleSelectHospital(hospital)}
-                    >
-                      <div className="flex flex-col">
-                        <div className="font-medium">{hospital.name}</div>
-                        {/*{hospital.address && (
-                          <div className="text-xs text-muted-foreground flex items-center">
-                            <MapPin className="mr-1 h-3 w-3" />
-                            {hospital.address}
+              <CommandList>
+                {loading && initialLoad.current ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    <span className="ml-2 text-sm text-muted-foreground">Carregando hospitais...</span>
+                  </div>
+                ) : loading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    <span className="ml-2 text-sm text-muted-foreground">Buscando hospitais...</span>
+                  </div>
+                ) : (
+                  <>
+                    <CommandEmpty>Nenhum hospital encontrado.</CommandEmpty>
+                    <CommandGroup heading="Hospitais e Clínicas">
+                      {predictions.map((hospital) => (
+                        <CommandItem
+                          key={hospital.id || `${hospital.name}-${hospital.location.lat}-${hospital.location.lng}`}
+                          value={hospital.name}
+                          onSelect={() => handleSelectHospital(hospital)}
+                        >
+                          <div className="flex flex-col">
+                            <div className="font-medium">{hospital.name}</div>
+                            {/*{hospital.address && (
+                              <div className="text-xs text-muted-foreground flex items-center">
+                                <MapPin className="mr-1 h-3 w-3" />
+                                {hospital.address}
+                              </div>
+                            )}*/}
                           </div>
-                        )}*/}
-                      </div>
-                    </CommandItem>
-                  ))}
-                  {showCreateOption && (
-                    <CommandItem
-                      value={`Criar "${search}"`}
-                      onSelect={handleCreateNewHospital}
-                      className="text-primary"
-                    >
-                      <div className="flex items-center">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Criar novo hospital: "{search}"
-                      </div>
-                    </CommandItem>
-                  )}
-                </CommandGroup>
-              </>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+                        </CommandItem>
+                      ))}
+                      {showCreateOption && (
+                        <CommandItem
+                          value={`Criar "${search}"`}
+                          onSelect={handleCreateNewHospital}
+                          className="text-primary"
+                        >
+                          <div className="flex items-center">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Criar novo hospital: "{search}"
+                          </div>
+                        </CommandItem>
+                      )}
+                    </CommandGroup>
+                  </>
+                )}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar novo hospital</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleModalSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nome</label>
+              <Input
+                value={modalHospital.name}
+                onChange={e => setModalHospital({ ...modalHospital, name: e.target.value })}
+                required
+                placeholder="Nome do hospital ou clínica"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Endereço</label>
+              <Input
+                value={modalHospital.address}
+                onChange={e => setModalHospital({ ...modalHospital, address: e.target.value })}
+                required
+                placeholder="Endereço completo"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={modalLoading} className="bg-medical-teal text-white hover:bg-medical-accent">
+                {modalLoading ? 'Cadastrando...' : 'Cadastrar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

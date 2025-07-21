@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import api from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 
 export type ShiftStatus = 'scheduled' | 'completed' | 'paid' | 'canceled';
 
@@ -48,6 +49,9 @@ interface ShiftCardProps {
   shift: ShiftProps;
   compact?: boolean;
   onStatusChange?: (id: string, newStatus: ShiftStatus) => void;
+  onShowDetails?: () => void;
+  onEdit?: () => void;
+  checkbox?: React.ReactNode;
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -58,11 +62,11 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
 };
 
-export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardProps) {
+export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetails, onEdit, checkbox }: ShiftCardProps) {
   const status = statusConfig[shift.status] || statusConfig.scheduled;
   const [isUpdating, setIsUpdating] = useState(false);
-  const [shiftToDelete, setShiftToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
   
   const updateShiftStatus = async (id: string, newStatus: ShiftStatus) => {
     try {
@@ -89,13 +93,11 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
     }
   };
   
-  const deleteShift = async () => {
-    if (!shiftToDelete) return;
-    
+  const deleteShift = async (id: string) => {
     try {
       setIsDeleting(true);
       
-      await api.deleteShift(shiftToDelete);
+      await api.deleteShift(id);
       
       toast({
         title: 'Plantão excluído',
@@ -103,7 +105,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
       });
       
       if (onStatusChange) {
-        onStatusChange(shiftToDelete, 'deleted' as ShiftStatus);
+        onStatusChange(id, 'deleted' as ShiftStatus);
       }
     } catch (error) {
       console.error('Erro ao excluir plantão:', error);
@@ -114,7 +116,6 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
       });
     } finally {
       setIsDeleting(false);
-      setShiftToDelete(null);
     }
   };
 
@@ -126,6 +127,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
       <CardContent className={cn("p-4", compact ? "space-y-2" : "space-y-4")}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
+            {checkbox}
             <Calendar className={cn("text-medical-blue", compact ? "h-4 w-4" : "h-5 w-5")} />
             <span className={cn("font-medium", compact ? "text-sm" : "text-base")}>
               {formatMediumDate(shift.date)}
@@ -147,24 +149,14 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {/*{shift.status === 'scheduled' && (
-                    <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'completed')}>
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                      Marcar como realizado
-                    </DropdownMenuItem>
-                  )}
-                  {(shift.status === 'scheduled' || shift.status === 'completed') && (
-                    <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'paid')}>
-                      <DollarSign className="mr-2 h-4 w-4 text-purple-500" />
-                      Marcar como pago
-                    </DropdownMenuItem>
-                  )}
-                  {shift.status === 'scheduled' && (
-                    <DropdownMenuItem onClick={() => updateShiftStatus(shift.id, 'canceled')}>
-                      <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                      Cancelar plantão
-                    </DropdownMenuItem>
-                  )}*/}
+                  <DropdownMenuItem onClick={onShowDetails}>
+                    <Info className="mr-2 h-4 w-4 text-blue-500" />
+                    Detalhes
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onEdit}>
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                    Editar
+                  </DropdownMenuItem>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
@@ -182,10 +174,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={() => {
-                            setShiftToDelete(shift.id);
-                            deleteShift();
-                          }}
+                          onClick={() => deleteShift(shift.id)}
                           className="bg-red-600 hover:bg-red-700"
                           disabled={isDeleting}
                         >
@@ -219,7 +208,6 @@ export function ShiftCard({ shift, compact = false, onStatusChange }: ShiftCardP
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <DollarSign className={cn("text-medical-green", compact ? "h-4 w-4" : "h-5 w-5")} />
             <span className={compact ? "text-sm font-medium" : "text-base font-medium"}>{shift.value}</span>
           </div>
           {!compact && (
