@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getShiftById } from './api';
 
 class ApiClient {
     private api: any;
@@ -147,6 +148,11 @@ class ApiClient {
         return response.data;
     }
 
+    async bulkDeleteShifts(ids: number[]) {
+        const response = await this.api.delete('/shifts/bulk_delete', { data: { ids } });
+        return response.data;
+    }
+
     async getAdminUsers() {
         const response = await this.api.get('/admin/users');
         return response.data;
@@ -188,6 +194,30 @@ class ApiClient {
             code, 
             new_password: newPassword 
         });
+        return response.data;
+    }
+
+    async getShiftById(id: string | undefined) {
+        if (!id) throw new Error('ID não informado');
+        const res = await fetch(`/api/shifts/${id}`);
+        if (!res.ok) throw new Error('Erro ao buscar plantão');
+        return await res.json();
+    }
+
+    async getGoal(year: number, month: number) {
+        const response = await this.api.get(`/shifts/goal?year=${year}&month=${month}`);
+        return response.data;
+    }
+    async setGoal(year: number, month: number, value: number) {
+        const response = await this.api.post('/shifts/goal', { year, month, value });
+        return response.data;
+    }
+    async removeGoal(year: number, month: number) {
+        const response = await this.api.delete(`/shifts/goal?year=${year}&month=${month}`);
+        return response.data;
+    }
+    async listGoals() {
+        const response = await this.api.get('/shifts/goals');
         return response.data;
     }
 }

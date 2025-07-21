@@ -27,24 +27,25 @@ interface MonthlyData {
 interface FinancialChartProps {
   shifts?: Array<{
     paymentDate: Date;
+    date?: Date; // Corrigido para incluir o campo date opcional
     value: string | number;
     status: string;
   }>;
 }
 
 export function FinancialChart({ shifts }: FinancialChartProps) {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{ month: string; ganhos: number; plantoes: number }[]>([]);
   const [chartType, setChartType] = useState('revenue');
 
   useEffect(() => {
     if (!shifts) return;
     const monthlyMap: Record<string, { ganhos: number; plantoes: number }> = {};
-    let minYear = new Date().getFullYear();
-    let maxYear = new Date().getFullYear();
+    const minYear = new Date().getFullYear();
+    const maxYear = new Date().getFullYear();
 
     shifts.forEach(shift => {
-      let paymentDate = shift.paymentDate && !isNaN(new Date(shift.paymentDate).getTime()) ? new Date(shift.paymentDate) : null;
-      let shiftDate = shift.date && !isNaN(new Date(shift.date).getTime()) ? new Date(shift.date) : null;
+      const paymentDate = shift.paymentDate && !isNaN(new Date(shift.paymentDate).getTime()) ? new Date(shift.paymentDate) : null;
+      const shiftDate = shift.date && !isNaN(new Date(shift.date).getTime()) ? new Date(shift.date) : null;
       if (paymentDate) {
         const month = paymentDate.getMonth();
         const year = paymentDate.getFullYear();
@@ -93,15 +94,22 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle>Visão financeira</CardTitle>
         <div className="flex items-center space-x-2">
-          <Select value={chartType} onValueChange={setChartType}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Tipo de gráfico" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="revenue">Receita</SelectItem>
-              <SelectItem value="shifts">Plantões</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex bg-muted rounded-md p-1">
+            <button
+              className={`px-3 py-1 rounded-md text-sm font-medium focus:outline-none transition-colors ${chartType === 'revenue' ? 'bg-white shadow text-black' : 'text-muted-foreground hover:text-black'}`}
+              onClick={() => setChartType('revenue')}
+              type="button"
+            >
+              Ganhos
+            </button>
+            <button
+              className={`px-3 py-1 rounded-md text-sm font-medium focus:outline-none transition-colors ${chartType === 'shifts' ? 'bg-white shadow text-black' : 'text-muted-foreground hover:text-black'}`}
+              onClick={() => setChartType('shifts')}
+              type="button"
+            >
+              Plantões
+            </button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-4">

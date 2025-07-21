@@ -12,6 +12,8 @@ export default function AdminHospitals() {
   const [error, setError] = useState('');
   const [selectedHospital, setSelectedHospital] = useState<any | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [newHospital, setNewHospital] = useState({ name: '', address: '' });
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     api.getAdminHospitals()
@@ -35,6 +37,29 @@ export default function AdminHospitals() {
     }
   };
 
+  const handleCreateHospital = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newHospital.name.trim() || !newHospital.address.trim() || newHospital.address.trim() === 'Endereço não especificado') {
+      alert('Preencha todos os campos corretamente.');
+      return;
+    }
+    setIsCreating(true);
+    try {
+      const created = await api.createHospital({
+        name: newHospital.name,
+        address: newHospital.address,
+        latitude: 0.0,
+        longitude: 0.0
+      });
+      setHospitals([...hospitals, created]);
+      setNewHospital({ name: '', address: '' });
+    } catch {
+      alert('Erro ao criar hospital.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const openDrawer = (hospital: any) => {
     setSelectedHospital(hospital);
     setDrawerOpen(true);
@@ -50,8 +75,42 @@ export default function AdminHospitals() {
 
   return (
     <AppShell>
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
+          <CardTitle>Novo hospital</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="flex flex-col md:flex-row gap-4 items-end flex-wrap" onSubmit={handleCreateHospital}>
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-sm font-medium mb-1">Nome</label>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2"
+                value={newHospital.name}
+                onChange={e => setNewHospital({ ...newHospital, name: e.target.value })}
+                required
+                placeholder="Nome do hospital ou clínica"
+              />
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-sm font-medium mb-1">Endereço</label>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2"
+                value={newHospital.address}
+                onChange={e => setNewHospital({ ...newHospital, address: e.target.value })}
+                required
+                placeholder="Endereço completo"
+              />
+            </div>
+            <Button type="submit" className="bg-medical-teal text-white hover:bg-medical-accent min-w-[140px]" disabled={isCreating}>
+              {isCreating ? 'Cadastrando...' : '+ Cadastrar'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Hospitais</CardTitle>
         </CardHeader>
         <CardContent>

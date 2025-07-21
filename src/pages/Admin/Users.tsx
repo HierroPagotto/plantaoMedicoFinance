@@ -30,7 +30,7 @@ export default function AdminUsers() {
   const handleDelete = async (userId: string) => {
     if (!window.confirm('Tem certeza que deseja deletar este usuário?')) return;
     try {
-      await api.deleteAdminUser(userId);
+      await api.deleteAdminUser(Number(userId));
       setUsers(users.filter((u: any) => u.id !== userId));
     } catch {
       alert('Erro ao deletar usuário.');

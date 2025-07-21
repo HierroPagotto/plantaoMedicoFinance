@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import api from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
+import { Settings as SettingsIcon } from 'lucide-react';
 
 const specialties = [
   'Cardiologia',
@@ -61,6 +62,18 @@ const Settings = () => {
     confirmPassword: ''
   });
 
+  // Metas financeiras
+  const [goalDefault, setGoalDefault] = useState('');
+  const [goalDefaultSaved, setGoalDefaultSaved] = useState<number | null>(null);
+  const [goalMonth, setGoalMonth] = useState('');
+  const [goalMonthSaved, setGoalMonthSaved] = useState<number | null>(null);
+  const [goalMonthCustom, setGoalMonthCustom] = useState(false);
+  const [goalsList, setGoalsList] = useState<{ year: number; month: number; value: number }[]>([]);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const monthName = now.toLocaleString('default', { month: 'long' });
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -77,12 +90,62 @@ const Settings = () => {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        const def = await api.getGoal(0, 0);
+        setGoalDefault(def.value ? String(def.value) : '');
+        setGoalDefaultSaved(def.value || null);
+        const cur = await api.getGoal(year, month);
+        setGoalMonth(cur.value ? String(cur.value) : '');
+        setGoalMonthSaved(cur.custom ? cur.value : null);
+        setGoalMonthCustom(cur.custom);
+        const list = await api.listGoals();
+        setGoalsList(list.filter((g: any) => !(g.year === 0 && g.month === 0)));
+      } catch {}
+    };
+    fetchGoals();
+  }, [year, month]);
+
   const handleProfileChange = (field: keyof DoctorProfile, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePasswordChange = (field: string, value: string) => {
     setPasswordData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const saveGoalDefault = async () => {
+    try {
+      await api.setGoal(0, 0, Number(goalDefault));
+      setGoalDefaultSaved(Number(goalDefault));
+      toast.success('Meta padrão salva!');
+    } catch { toast.error('Erro ao salvar meta padrão'); }
+  };
+  const saveGoalMonth = async () => {
+    try {
+      if (!goalMonth) return;
+      await api.setGoal(year, month, Number(goalMonth));
+      setGoalMonthSaved(Number(goalMonth));
+      setGoalMonthCustom(true);
+      toast.success('Meta personalizada salva!');
+    } catch { toast.error('Erro ao salvar meta personalizada'); }
+  };
+  const removeGoalMonth = async () => {
+    try {
+      await api.removeGoal(year, month);
+      setGoalMonth('');
+      setGoalMonthSaved(null);
+      setGoalMonthCustom(false);
+      toast.success('Meta personalizada removida!');
+    } catch { toast.error('Erro ao remover meta personalizada'); }
+  };
+  const removeGoal = async (gYear: number, gMonth: number) => {
+    try {
+      await api.removeGoal(gYear, gMonth);
+      setGoalsList(goalsList.filter(g => !(g.year === gYear && g.month === gMonth)));
+      toast.success('Meta removida!');
+    } catch { toast.error('Erro ao remover meta'); }
   };
 
   const saveChanges = async () => {
@@ -248,6 +311,61 @@ const Settings = () => {
                     onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
                     placeholder="Repita a nova senha"
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Metas Financeiras */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Metas Financeiras</CardTitle>
+              <CardDescription>
+                Configure suas metas mensais e como calcular o progresso
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label className="font-semibold flex items-center gap-2"><span className="text-lg">$</span> Meta mensal padrão</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    type="number"
+                    value={goalDefault}
+                    onChange={e => setGoalDefault(e.target.value)}
+                    placeholder="Ex: 8000"
+                  />
+                  <Button onClick={saveGoalDefault} disabled={!goalDefault}>Salvar</Button>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Esta será sua meta padrão para todos os meses</div>
+                {goalDefaultSaved !== null && <div className="text-xs mt-1">Meta atual: R$ {goalDefaultSaved.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>}
+              </div>
+              <Separator className="my-4" />
+              <div>
+                <Label className="font-semibold flex items-center gap-2">Meta para {monthName.charAt(0).toUpperCase() + monthName.slice(1)} {year} {goalMonthCustom && <span className="ml-2 px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-semibold">Personalizada</span>}</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    type="number"
+                    value={goalMonth}
+                    onChange={e => setGoalMonth(e.target.value)}
+                    placeholder="Ex: 10000"
+                  />
+                  <Button onClick={saveGoalMonth} disabled={!goalMonth}>Salvar</Button>
+                  {goalMonthCustom && <Button variant="outline" onClick={removeGoalMonth}>Remover</Button>}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Defina uma meta específica para este mês (deixe vazio para usar a meta padrão)</div>
+              </div>
+              <Separator className="my-4" />
+              <div>
+                <div className="font-semibold mb-2">Metas personalizadas</div>
+                <div className="space-y-1">
+                  {goalsList.length === 0 && <div className="text-xs text-muted-foreground">Nenhuma meta personalizada cadastrada.</div>}
+                  {goalsList.map(g => (
+                    <div key={`${g.year}-${g.month}`} className="flex items-center justify-between border-b py-1">
+                      <span>{new Date(g.year, g.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+                      <span>R$ {g.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <Button size="sm" variant="ghost" onClick={() => removeGoal(g.year, g.month)}>Remover</Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
