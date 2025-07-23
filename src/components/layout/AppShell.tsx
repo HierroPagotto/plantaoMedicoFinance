@@ -90,29 +90,14 @@ export const AppShell = ({ children }: AppShellProps) => {
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="flex h-screen w-screen bg-background">
         <Sidebar className="md:block">
-          <SidebarHeader className="border-b border-border">
-            <div className="flex items-center p-2">
-              {sidebarOpen ? (
-                <div className="flex items-center justify-center w-full">
-                  <Link to="/dashboard" className="flex items-center">
-                    <img
-                      src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png"
-                      alt="MedSinc Logo"
-                      className="h-10 w-auto object-contain"
-                    />
-                    <h1 className="font-bold text-xl text-medical-teal ml-2">MedSinc</h1>
-                  </Link>
-                </div>
-              ) : (
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <img
-                    src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png"
-                    alt="MedSinc Logo"
-                    className="h-8 w-auto object-contain"
-                  />
-                </div>
-              )}
-            </div>
+          <SidebarHeader className="border-b border-border p-0 h-28 flex items-center justify-center"> {/* Remove padding, define altura fixa, centraliza */}
+            <Link to="/dashboard" className="flex items-center w-full justify-center">
+              <img
+                src="/Logo.png"
+                alt="MedSinc Logo"
+                className="h-24 w-auto max-w-[80%] object-contain mx-auto" // Logo maior, ocupa quase toda largura
+              />
+            </Link>
           </SidebarHeader>
 
           <SidebarHeader className="border-b border-border">

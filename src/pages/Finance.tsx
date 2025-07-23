@@ -209,7 +209,7 @@ const Finance = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Detalhamento mensal</CardTitle>
+          <CardTitle>Tabela de pagamentos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -217,13 +217,13 @@ const Finance = () => {
               <thead>
                 <tr className="bg-muted/50">
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Mês
+                    Mês de pagamento
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Plantões
+                    Plantões realizados
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Ganhos
+                    Pagamento
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                     Média por plantão
