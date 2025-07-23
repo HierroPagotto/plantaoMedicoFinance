@@ -20,7 +20,7 @@ const Index = () => {
     <div className="flex h-screen items-center justify-center">
       <div className="text-center">
         <img 
-          src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png" 
+          src="/Logo.png" 
           alt="MedSinc Logo" 
           className="h-28 w-auto mx-auto mb-4 object-contain" 
         />

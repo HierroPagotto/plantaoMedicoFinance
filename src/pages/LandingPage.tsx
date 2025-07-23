@@ -88,11 +88,10 @@ const LandingPage = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img 
-              src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png" 
+              src="/Logo.png" 
               alt="MedSinc Logo" 
               className="h-10 w-auto" 
             />
-            <span className="text-2xl font-bold text-medical-teal">MedSinc</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/login">
@@ -138,7 +137,7 @@ const LandingPage = () => {
             </Link>
             <Link to="/login">
               <Button size="lg" variant="outline" className="border-medical-teal text-medical-teal hover:bg-medical-teal hover:text-white px-8 py-6 text-lg">
-                Ver Demo
+                Ver Video
               </Button>
             </Link>
           </div>
@@ -305,7 +304,7 @@ const LandingPage = () => {
               </Button>
             </Link>
             <Link to="/login">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-medical-teal px-8 py-6 text-lg">
+              <Button size="lg" variant="outline" className="border-white text-medical-teal hover:bg-white hover:text-medical-teal px-8 py-6 text-lg">
                 Acessar Conta
               </Button>
             </Link>
@@ -320,7 +319,7 @@ const LandingPage = () => {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <img 
-                  src="/lovable-uploads/680739ca-789e-4353-bfb4-973cfc120e15.png" 
+                  src="/Logo.png" 
                   alt="MedSinc Logo" 
                   className="h-8 w-auto" 
                 />
