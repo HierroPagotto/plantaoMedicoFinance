@@ -54,7 +54,7 @@ jobs:
             echo "=== Limpando build anterior ==="
 
             find "$TARGET" -mindepth 1 -maxdepth 1 \
-              ! -name "lovable-uploads" \
+              ! -name "uploads" \
               -exec rm -rf {} +
 
             echo "=== Publicando novo build ==="
