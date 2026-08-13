@@ -13,7 +13,7 @@ import {
   SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import Header from './Header';
@@ -71,6 +71,7 @@ export const AppShell = ({ children }: AppShellProps) => {
 
   const links = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Marketplace', href: '/marketplace', icon: Store },
     { name: 'Plantões', href: '/shifts', icon: Calendar },
     { name: 'Financeiro', href: '/finance', icon: DollarSign },
     { name: 'Histórico', href: '/history', icon: History },
@@ -83,6 +84,9 @@ export const AppShell = ({ children }: AppShellProps) => {
   ];
 
   const isActive = (path: string) => {
+    if (path === '/marketplace') {
+      return location.pathname === path || location.pathname.startsWith('/marketplace/');
+    }
     return location.pathname === path;
   };
 

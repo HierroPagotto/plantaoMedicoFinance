@@ -24,6 +24,9 @@ import LandingPage from './pages/LandingPage';
 import HospitalDashboard from './pages/Hospital/Dashboard';
 import HospitalStaffPage from './pages/Hospital/Staff';
 import HospitalRegister from './pages/Hospital/Register';
+import MarketplacePage from './pages/Marketplace/Index';
+import MarketplaceDetailPage from './pages/Marketplace/Detail';
+import MyApplicationsPage from './pages/Marketplace/MyApplications';
 
 const queryClient = new QueryClient();
 
@@ -64,6 +67,10 @@ const App = () => (
 
           <Route path="/hospital" element={<ProtectedRoute role="hospital_staff"><HospitalDashboard /></ProtectedRoute>} />
           <Route path="/hospital/staff" element={<ProtectedRoute role="hospital_staff"><HospitalStaffPage /></ProtectedRoute>} />
+
+          <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
+          <Route path="/marketplace/minhas-candidaturas" element={<ProtectedRoute><MyApplicationsPage /></ProtectedRoute>} />
+          <Route path="/marketplace/:id" element={<ProtectedRoute><MarketplaceDetailPage /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
