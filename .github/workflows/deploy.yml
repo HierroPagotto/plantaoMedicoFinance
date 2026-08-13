@@ -10,6 +10,9 @@ jobs:
     name: Build and Deploy
     runs-on: ubuntu-latest
 
+    env:
+      VITE_API_BASE_URL: https://api.medsinc.com.br/api
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,17 +29,17 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to CloudPanel
+      - name: Upload build to CloudPanel
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           source: "dist/*"
-          target: "/home/github-deploy/htdocs/medsinc.com.br"
+          target: "/home/github-deploy/tmp/medsinc-frontend"
           strip_components: 1
 
-      - name: Verify deployment
+      - name: Publish frontend
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -45,13 +48,30 @@ jobs:
           script: |
             set -e
 
-            echo "=== Verificando frontend ==="
+            TARGET="$HOME/htdocs/medsinc.com.br"
+            BUILD="$HOME/tmp/medsinc-frontend"
 
-            if [ ! -f ~/htdocs/medsinc.com.br/index.html ]; then
+            echo "=== Limpando build anterior ==="
+
+            find "$TARGET" -mindepth 1 -maxdepth 1 \
+              ! -name "lovable-uploads" \
+              -exec rm -rf {} +
+
+            echo "=== Publicando novo build ==="
+
+            cp -r "$BUILD"/. "$TARGET"/
+
+            echo "=== Limpando arquivos temporários ==="
+
+            rm -rf "$BUILD"
+
+            echo "=== Verificando publicação ==="
+
+            if [ ! -f "$TARGET/index.html" ]; then
               echo "ERRO: index.html não encontrado."
               exit 1
             fi
 
-            echo "=== Frontend publicado com sucesso! ==="
+            echo "Frontend publicado com sucesso!"
 
-            ls -lah ~/htdocs/medsinc.com.br
+            ls -lah "$TARGET"
