@@ -11,17 +11,25 @@ export function NextPaymentCard({ shifts }: any) {
   const MAX_PAYMENTS_TO_SHOW = 5;
 
   useEffect(() => {
-    const filteredPayments = shifts
-      .filter(shift => {
-        const paymentDate = parseISO(shift.payment_date);
-        return (
-          (shift.status === 'completed' || shift.status === 'scheduled') &&
-          isFuture(paymentDate)
-        );
+    const filteredPayments = (shifts || [])
+      .filter((shift: { payment_date?: string | null; status?: string }) => {
+        if (!shift?.payment_date) return false;
+        if (shift.status !== 'completed' && shift.status !== 'scheduled') return false;
+        try {
+          const paymentDate = parseISO(shift.payment_date);
+          return isFuture(paymentDate);
+        } catch {
+          return false;
+        }
       })
-      .sort((a, b) => parseISO(a.payment_date).getTime() - parseISO(b.payment_date).getTime())
+      .sort(
+        (
+          a: { payment_date: string },
+          b: { payment_date: string }
+        ) => parseISO(a.payment_date).getTime() - parseISO(b.payment_date).getTime()
+      )
       .slice(0, MAX_PAYMENTS_TO_SHOW)
-      .map(payment => ({
+      .map((payment: { payment_date: string; id: number; value: number; hospital?: { name?: string }; status?: string }) => ({
         ...payment,
         paymentDate: parseISO(payment.payment_date),
       }));
@@ -70,8 +78,7 @@ export function NextPaymentCard({ shifts }: any) {
               </div>
               <div className="flex items-center gap-2 text-sm mt-1">
                 <Hospital className="h-4 w-4 text-medical-blue" />
-                <span className="font-medium">{payment.hospital.name}</span>
-                {/*<span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${payment.status === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{payment.status === 'scheduled' ? 'Agendado' : 'Realizado'}</span>*/}
+                <span className="font-medium">{payment.hospital?.name || 'Hospital'}</span>
               </div>
             </div>
           ))}

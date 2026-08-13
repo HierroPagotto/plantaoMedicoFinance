@@ -170,7 +170,7 @@ const Dashboard = () => {
               let valor = typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : Number(shift.value);
               if (!isNaN(valor)) totalValue += valor;
               let hours = 0;
-              if (shift.start_time && shift.end_time) {
+              if (typeof shift.start_time === 'string' && typeof shift.end_time === 'string') {
                 const [sh, sm] = shift.start_time.split(':').map(Number);
                 const [eh, em] = shift.end_time.split(':').map(Number);
                 if (!isNaN(sh) && !isNaN(sm) && !isNaN(eh) && !isNaN(em)) {
