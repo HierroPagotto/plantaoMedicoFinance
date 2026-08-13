@@ -47,6 +47,15 @@ export type OpportunityApplication = {
     id: number;
     name: string;
     crm?: string;
+    crm_state?: string;
     main_specialty?: string;
+    city?: string;
+    state?: string;
+    photo_url?: string;
+    acls?: boolean;
+    bls?: boolean;
+    atls?: boolean;
+    pals?: boolean;
+    years_of_experience?: string;
   };
 };
