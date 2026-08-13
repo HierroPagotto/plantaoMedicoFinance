@@ -24,6 +24,10 @@ import LandingPage from './pages/LandingPage';
 import HospitalDashboard from './pages/Hospital/Dashboard';
 import HospitalStaffPage from './pages/Hospital/Staff';
 import HospitalRegister from './pages/Hospital/Register';
+import HospitalOpportunitiesPage from './pages/Hospital/Opportunities';
+import HospitalNewOpportunityPage from './pages/Hospital/OpportunityNew';
+import HospitalOpportunityDetailPage from './pages/Hospital/OpportunityDetail';
+import HospitalSettingsPage from './pages/Hospital/Settings';
 import MarketplacePage from './pages/Marketplace/Index';
 import MarketplaceDetailPage from './pages/Marketplace/Detail';
 import MyApplicationsPage from './pages/Marketplace/MyApplications';
@@ -67,6 +71,10 @@ const App = () => (
 
           <Route path="/hospital" element={<ProtectedRoute role="hospital_staff"><HospitalDashboard /></ProtectedRoute>} />
           <Route path="/hospital/staff" element={<ProtectedRoute role="hospital_staff"><HospitalStaffPage /></ProtectedRoute>} />
+          <Route path="/hospital/settings" element={<ProtectedRoute role="hospital_staff"><HospitalSettingsPage /></ProtectedRoute>} />
+          <Route path="/hospital/opportunities" element={<ProtectedRoute role="hospital_staff"><HospitalOpportunitiesPage /></ProtectedRoute>} />
+          <Route path="/hospital/opportunities/new" element={<ProtectedRoute role="hospital_staff"><HospitalNewOpportunityPage /></ProtectedRoute>} />
+          <Route path="/hospital/opportunities/:id" element={<ProtectedRoute role="hospital_staff"><HospitalOpportunityDetailPage /></ProtectedRoute>} />
 
           <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
           <Route path="/marketplace/minhas-candidaturas" element={<ProtectedRoute><MyApplicationsPage /></ProtectedRoute>} />

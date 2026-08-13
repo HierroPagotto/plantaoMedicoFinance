@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ?? 'https://api.medsinc.com.br/api';
@@ -20,7 +20,7 @@ export type LoginResponse = {
 };
 
 class ApiClient {
-    private api: any;
+    private api: AxiosInstance;
     private token: string | null = null;
 
     constructor() {
@@ -33,7 +33,7 @@ class ApiClient {
 
         this.token = localStorage.getItem('token');
 
-        this.api.interceptors.request.use((config: any) => {
+        this.api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
             const token = localStorage.getItem('token') || this.token;
             if (token) {
                 const value = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
@@ -41,7 +41,7 @@ class ApiClient {
                 this.token = token.replace(/^Bearer\s+/i, '');
             }
             return config;
-        }, (error: any) => {
+        }, (error: AxiosError) => {
             return Promise.reject(error);
         });
     }
@@ -149,17 +149,17 @@ class ApiClient {
         return response.data;
     }
 
-    async register(doctor: any) {
+    async register(doctor: Record<string, unknown>) {
         const response = await this.api.post('/doctors', doctor);
         return response.data;
     }
 
-    async createShift(shift: any) {
+    async createShift(shift: Record<string, unknown>) {
         const response = await this.api.post('/shifts', shift);
         return response.data;
     }
 
-    async createHospital(hospital: any) {
+    async createHospital(hospital: Record<string, unknown>) {
         const response = await this.api.post('/hospitals', hospital);
         return response.data;
     }
@@ -192,7 +192,7 @@ class ApiClient {
         return response.data;
     }
 
-    async updateMyData(doctor: any) {
+    async updateMyData(doctor: Record<string, unknown>) {
         const response = await this.api.put('/doctors/me', doctor);
         return response.data;
     }
@@ -207,7 +207,7 @@ class ApiClient {
         return response.data;
     }
 
-    async updateShiftStatus(shiftId: any, status: string) {
+    async updateShiftStatus(shiftId: string | number, status: string) {
         if (status === 'completed') {
             return this.setShiftComplete(shiftId);
         } else if (status === 'canceled') {
@@ -218,22 +218,22 @@ class ApiClient {
         return false;
     }
 
-    async setShiftComplete(shiftId: any) {
+    async setShiftComplete(shiftId: string | number) {
         const response = await this.api.post(`/shifts/${shiftId}/complete`);
         return response.data;
     }
 
-    async setShiftCancelled(shiftId: any) {
+    async setShiftCancelled(shiftId: string | number) {
         const response = await this.api.post(`/shifts/${shiftId}/cancelled`);
         return response.data;
     }
 
-    async setShiftPaid(shiftId: any) {
+    async setShiftPaid(shiftId: string | number) {
         const response = await this.api.post(`/shifts/${shiftId}/paid`);
         return response.data;
     }
 
-    async deleteShift(shiftId: any) {
+    async deleteShift(shiftId: string | number) {
         const response = await this.api.delete(`/shifts/${shiftId}`);
         return response.data;
     }
@@ -263,7 +263,7 @@ class ApiClient {
         return response.data;
     }
 
-    async updateShift(shiftId: string | number, data: any) {
+    async updateShift(shiftId: string | number, data: Record<string, unknown>) {
         const response = await this.api.put(`/shifts/${shiftId}`, data);
         return response.data;
     }
@@ -340,6 +340,70 @@ class ApiClient {
     async withdrawMarketplaceApplication(applicationId: number | string) {
         const response = await this.api.post(
             `/marketplace/applications/${applicationId}/withdraw`
+        );
+        return response.data;
+    }
+
+    async listHospitalOpportunities(status?: string) {
+        const response = await this.api.get('/marketplace/opportunities/mine', {
+            params: status ? { status } : undefined,
+        });
+        return response.data;
+    }
+
+    async createHospitalOpportunity(payload: {
+        date: string;
+        start_time: string;
+        end_time: string;
+        specialty: string;
+        value: number;
+        city?: string;
+        slots_total?: number;
+        notes?: string;
+    }) {
+        const response = await this.api.post('/marketplace/opportunities', payload);
+        return response.data;
+    }
+
+    async updateHospitalOpportunity(
+        id: number | string,
+        payload: Partial<{
+            date: string;
+            start_time: string;
+            end_time: string;
+            specialty: string;
+            value: number;
+            city: string;
+            slots_total: number;
+            notes: string;
+        }>
+    ) {
+        const response = await this.api.put(`/marketplace/opportunities/${id}`, payload);
+        return response.data;
+    }
+
+    async cancelHospitalOpportunity(id: number | string) {
+        const response = await this.api.post(`/marketplace/opportunities/${id}/cancel`);
+        return response.data;
+    }
+
+    async listOpportunityApplications(opportunityId: number | string) {
+        const response = await this.api.get(
+            `/marketplace/opportunities/${opportunityId}/applications`
+        );
+        return response.data;
+    }
+
+    async approveMarketplaceApplication(applicationId: number | string) {
+        const response = await this.api.post(
+            `/marketplace/applications/${applicationId}/approve`
+        );
+        return response.data;
+    }
+
+    async rejectMarketplaceApplication(applicationId: number | string) {
+        const response = await this.api.post(
+            `/marketplace/applications/${applicationId}/reject`
         );
         return response.data;
     }

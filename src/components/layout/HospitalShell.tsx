@@ -1,5 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, LogOut, Users, LayoutDashboard } from 'lucide-react';
+import {
+  Building2,
+  LogOut,
+  Users,
+  LayoutDashboard,
+  CalendarDays,
+  Settings,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type HospitalShellProps = {
@@ -22,8 +29,15 @@ export function HospitalShell({ children }: HospitalShellProps) {
 
   const links = [
     { name: 'Início', href: '/hospital', icon: LayoutDashboard },
+    { name: 'Vagas', href: '/hospital/opportunities', icon: CalendarDays },
     { name: 'Equipe', href: '/hospital/staff', icon: Users },
+    { name: 'Hospital', href: '/hospital/settings', icon: Settings },
   ];
+
+  const isActive = (href: string) => {
+    if (href === '/hospital') return location.pathname === '/hospital';
+    return location.pathname === href || location.pathname.startsWith(`${href}/`);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -49,17 +63,17 @@ export function HospitalShell({ children }: HospitalShellProps) {
             </Button>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-1 px-4 pb-3">
+        <nav className="mx-auto flex max-w-6xl flex-wrap gap-1 px-4 pb-3">
           {links.map((link) => {
-            const active = location.pathname === link.href;
+            const active = isActive(link.href);
             const Icon = link.icon;
             return (
               <Link
                 key={link.href}
                 to={link.href}
                 className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm ${active
-                  ? 'bg-teal-700 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-teal-700 text-white'
+                    : 'text-slate-600 hover:bg-slate-100'
                   }`}
               >
                 <Icon className="h-4 w-4" />
