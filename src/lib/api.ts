@@ -309,6 +309,40 @@ class ApiClient {
         const response = await this.api.get('/shifts/goals');
         return response.data;
     }
+
+    async listMarketplaceOpportunities(params?: {
+        city?: string;
+        specialty?: string;
+        date_from?: string;
+        date_to?: string;
+    }) {
+        const response = await this.api.get('/marketplace/opportunities', { params });
+        return response.data;
+    }
+
+    async getMarketplaceOpportunity(id: number | string) {
+        const response = await this.api.get(`/marketplace/opportunities/${id}`);
+        return response.data;
+    }
+
+    async applyToOpportunity(id: number | string, message?: string) {
+        const response = await this.api.post(`/marketplace/opportunities/${id}/apply`, {
+            message: message || undefined,
+        });
+        return response.data;
+    }
+
+    async listMyMarketplaceApplications() {
+        const response = await this.api.get('/marketplace/applications/mine');
+        return response.data;
+    }
+
+    async withdrawMarketplaceApplication(applicationId: number | string) {
+        const response = await this.api.post(
+            `/marketplace/applications/${applicationId}/withdraw`
+        );
+        return response.data;
+    }
 }
 
 export const api = new ApiClient();
