@@ -25,7 +25,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import api from '@/lib/api';
-import { useNavigate } from 'react-router-dom';
 
 export type ShiftStatus = 'scheduled' | 'completed' | 'paid' | 'canceled';
 
@@ -41,8 +40,23 @@ export interface ShiftProps {
   };
   value: string;
   specialty: string;
-  paymentDate: Date;
+  paymentDate: Date | null;
   status: ShiftStatus;
+  /** 'manual' | 'marketplace' — plantões do marketplace não são editáveis pelo médico */
+  source?: string;
+  opportunityId?: number | null;
+}
+
+export function isMarketplaceShift(shift: {
+  source?: string | null;
+  opportunityId?: number | null;
+  opportunity_id?: number | null;
+}): boolean {
+  return (
+    shift.source === 'marketplace' ||
+    Boolean(shift.opportunityId) ||
+    Boolean(shift.opportunity_id)
+  );
 }
 
 interface ShiftCardProps {
@@ -66,7 +80,9 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
   const status = statusConfig[shift.status] || statusConfig.scheduled;
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const navigate = useNavigate();
+  const fromMarketplace = isMarketplaceShift(shift);
+  const canEdit = !fromMarketplace && Boolean(onEdit);
+  const canDelete = !fromMarketplace;
   
   const updateShiftStatus = async (id: string, newStatus: ShiftStatus) => {
     try {
@@ -153,36 +169,45 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
                     <Info className="mr-2 h-4 w-4 text-blue-500" />
                     Detalhes
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={onEdit}>
-                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                    Editar
-                  </DropdownMenuItem>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir plantão
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir plantão</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir este plantão? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => deleteShift(shift.id)}
-                          className="bg-red-600 hover:bg-red-700"
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? "Excluindo..." : "Excluir"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {canEdit && (
+                    <DropdownMenuItem onClick={onEdit}>
+                      <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                      Editar
+                    </DropdownMenuItem>
+                  )}
+                  {fromMarketplace && (
+                    <DropdownMenuItem disabled className="text-muted-foreground text-xs">
+                      Origem: marketplace (somente leitura)
+                    </DropdownMenuItem>
+                  )}
+                  {canDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir plantão
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir plantão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir este plantão? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => deleteShift(shift.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? "Excluindo..." : "Excluir"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -210,18 +235,27 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
           <div className="flex items-center space-x-2">
             <span className={compact ? "text-sm font-medium" : "text-base font-medium"}>{shift.value}</span>
           </div>
-          {!compact && (
-            <Badge variant="outline" className="text-xs font-normal">
-              {shift.specialty}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {fromMarketplace && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                Marketplace
+              </Badge>
+            )}
+            {!compact && (
+              <Badge variant="outline" className="text-xs font-normal">
+                {shift.specialty}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {!compact && (
           <div className="text-xs text-muted-foreground flex items-center justify-between pt-2 border-t">
             <span>Pagamento previsto:</span>
             <span className="font-medium">
-              {formatShortDate(shift.paymentDate)}
+              {shift.paymentDate && !Number.isNaN(shift.paymentDate.getTime())
+                ? formatShortDate(shift.paymentDate)
+                : 'A definir'}
             </span>
           </div>
         )}

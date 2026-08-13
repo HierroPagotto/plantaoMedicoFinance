@@ -1,5 +1,5 @@
 import { AppShell } from '@/components/layout/AppShell';
-import { ShiftCard, type ShiftProps, type ShiftStatus } from '@/components/shifts/ShiftCard';
+import { ShiftCard, type ShiftProps, type ShiftStatus, isMarketplaceShift } from '@/components/shifts/ShiftCard';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Filter, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -56,7 +56,9 @@ type ApiShift = {
   specialty: string;
   status: string;
   value: number;
-  payment_date: string;
+  payment_date: string | null;
+  source?: string;
+  opportunity_id?: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -122,8 +124,10 @@ const Shifts = () => {
             minimumFractionDigits: 2
           }),
           specialty: shift.specialty,
-          paymentDate: new Date(shift.payment_date),
+          paymentDate: shift.payment_date ? new Date(shift.payment_date) : null,
           status: shift.status,
+          source: shift.source || 'manual',
+          opportunityId: shift.opportunity_id ?? null,
         }));
         setShifts(formattedShifts);
       } catch (err) {
@@ -155,7 +159,9 @@ const Shifts = () => {
   };
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(filteredShifts.map(s => s.id));
+      setSelectedIds(
+        filteredShifts.filter((s) => !isMarketplaceShift(s)).map((s) => s.id)
+      );
     } else {
       setSelectedIds([]);
     }
@@ -321,8 +327,16 @@ const Shifts = () => {
           <>
             <div className="col-span-full flex items-center gap-2 mb-2">
               <Checkbox
-                checked={selectedIds.length === filteredShifts.length && filteredShifts.length > 0}
-                indeterminate={selectedIds.length > 0 && selectedIds.length < filteredShifts.length}
+                checked={
+                  filteredShifts.filter((s) => !isMarketplaceShift(s)).length > 0 &&
+                  selectedIds.length ===
+                    filteredShifts.filter((s) => !isMarketplaceShift(s)).length
+                }
+                indeterminate={
+                  selectedIds.length > 0 &&
+                  selectedIds.length <
+                    filteredShifts.filter((s) => !isMarketplaceShift(s)).length
+                }
                 onCheckedChange={checked => handleSelectAll(!!checked)}
                 id="select-all-shifts"
               />
@@ -334,13 +348,17 @@ const Shifts = () => {
                 shift={shift}
                 onStatusChange={handleStatusChange}
                 onShowDetails={() => setSelectedShift(shift)}
-                onEdit={() => setEditShift(shift)}
+                onEdit={
+                  isMarketplaceShift(shift) ? undefined : () => setEditShift(shift)
+                }
                 checkbox={
-                  <Checkbox
-                    checked={selectedIds.includes(shift.id)}
-                    onCheckedChange={checked => handleSelect(shift.id, !!checked)}
-                    className="mr-2"
-                  />
+                  isMarketplaceShift(shift) ? undefined : (
+                    <Checkbox
+                      checked={selectedIds.includes(shift.id)}
+                      onCheckedChange={checked => handleSelect(shift.id, !!checked)}
+                      className="mr-2"
+                    />
+                  )
                 }
               />
             ))}
@@ -391,8 +409,18 @@ const Shifts = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Data para pagamento</h4>
-                  <p>{formatShortDate(selectedShift.paymentDate)}</p>
+                  <p>
+                    {selectedShift.paymentDate &&
+                    !Number.isNaN(selectedShift.paymentDate.getTime())
+                      ? formatShortDate(selectedShift.paymentDate)
+                      : 'A definir'}
+                  </p>
                 </div>
+                {isMarketplaceShift(selectedShift) && (
+                  <div className="col-span-2">
+                    <Badge variant="secondary">Marketplace — somente leitura</Badge>
+                  </div>
+                )}
               </div>
             </div>
           )}

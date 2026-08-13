@@ -16,9 +16,11 @@ export interface Shift {
   end_time: string;
   value: number;
   status: 'scheduled' | 'completed' | 'paid' | 'canceled';
-  payment_date: string;
+  payment_date: string | null;
   specialty: string;
   hospital: Hospital;
+  source?: string;
+  opportunity_id?: number | null;
   created_at: string;
   updated_at: string;
 }

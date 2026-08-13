@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/select';
 import api from '@/lib/api';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
+import { isMarketplaceShift } from '@/components/shifts/ShiftCard';
 
 interface Hospital {
   id: number;
@@ -69,9 +70,11 @@ interface Shift {
   end_time: string;
   value: number;
   status: 'scheduled' | 'completed' | 'paid' | 'canceled';
-  payment_date: string;
+  payment_date: string | null;
   specialty: string;
   hospital: Hospital;
+  source?: string;
+  opportunity_id?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -343,7 +346,7 @@ const History = () => {
                     </Badge>
                   </TableCell>*/}
                   <TableCell>
-                    {formatShortDate(shift.payment_date)}
+                    {shift.payment_date ? formatShortDate(shift.payment_date) : 'A definir'}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -357,17 +360,26 @@ const History = () => {
                           <Info className="mr-2 h-4 w-4 text-blue-500" />
                           Detalhes
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setEditShift(shift); setEditData(shift); }}>
-                          <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        {!isMarketplaceShift(shift) && (
+                          <DropdownMenuItem onClick={() => { setEditShift(shift); setEditData(shift); }}>
+                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                            Editar
+                          </DropdownMenuItem>
+                        )}
+                        {isMarketplaceShift(shift) && (
+                          <DropdownMenuItem disabled className="text-muted-foreground text-xs">
+                            Origem: marketplace (somente leitura)
+                          </DropdownMenuItem>
+                        )}
+                        {!isMarketplaceShift(shift) && (
+                          <DropdownMenuItem 
                             onClick={() => setShiftToDelete(shift.id)}
                             className="text-red-500"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir plantão
                           </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -430,7 +442,11 @@ const History = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Data para pagamento</h4>
-                  <p>{formatShortDate(selectedShift.payment_date)}</p>
+                  <p>
+                    {selectedShift.payment_date
+                      ? formatShortDate(selectedShift.payment_date)
+                      : 'A definir'}
+                  </p>
                 </div>
               </div>
 
