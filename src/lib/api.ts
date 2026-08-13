@@ -315,6 +315,9 @@ class ApiClient {
         specialty?: string;
         date_from?: string;
         date_to?: string;
+        verified_only?: boolean;
+        page?: number;
+        per_page?: number;
     }) {
         const response = await this.api.get('/marketplace/opportunities', { params });
         return response.data;
@@ -405,6 +408,26 @@ class ApiClient {
         const response = await this.api.post(
             `/marketplace/applications/${applicationId}/reject`
         );
+        return response.data;
+    }
+
+    async verifyAdminHospital(hospitalId: string | number) {
+        const response = await this.api.post(`/admin/hospitals/${hospitalId}/verify`);
+        return response.data;
+    }
+
+    async unverifyAdminHospital(hospitalId: string | number) {
+        const response = await this.api.post(`/admin/hospitals/${hospitalId}/unverify`);
+        return response.data;
+    }
+
+    async listAdminOpportunities(params?: { status?: string; page?: number; per_page?: number }) {
+        const response = await this.api.get('/admin/opportunities', { params });
+        return response.data;
+    }
+
+    async cancelAdminOpportunity(opportunityId: string | number) {
+        const response = await this.api.post(`/admin/opportunities/${opportunityId}/cancel`);
         return response.data;
     }
 }

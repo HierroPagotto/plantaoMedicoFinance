@@ -20,6 +20,7 @@ import Logout from "./components/auth/Logout";
 import DoctorProfilePublic from "./pages/DoctorProfilePublic";
 import AdminUsers from './pages/Admin/Users';
 import AdminHospitals from './pages/Admin/Hospitals';
+import AdminOpportunities from './pages/Admin/Opportunities';
 import LandingPage from './pages/LandingPage';
 import HospitalDashboard from './pages/Hospital/Dashboard';
 import HospitalStaffPage from './pages/Hospital/Staff';
@@ -68,6 +69,7 @@ const App = () => (
           <Route path="/doctor-profile/:id" element={<DoctorProfilePublic />} />
           <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><AdminUsers /></AdminRoute></ProtectedRoute>} />
           <Route path="/admin/hospitals" element={<ProtectedRoute><AdminRoute><AdminHospitals /></AdminRoute></ProtectedRoute>} />
+          <Route path="/admin/opportunities" element={<ProtectedRoute><AdminRoute><AdminOpportunities /></AdminRoute></ProtectedRoute>} />
 
           <Route path="/hospital" element={<ProtectedRoute role="hospital_staff"><HospitalDashboard /></ProtectedRoute>} />
           <Route path="/hospital/staff" element={<ProtectedRoute role="hospital_staff"><HospitalStaffPage /></ProtectedRoute>} />
