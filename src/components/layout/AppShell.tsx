@@ -79,7 +79,8 @@ export const AppShell = ({ children }: AppShellProps) => {
     { name: 'Perfil Médico', href: '/doctor-profile', icon: User },
     ...(user.is_admin ? [
       { name: 'Admin: Usuários', href: '/admin/users', icon: User },
-      { name: 'Admin: Hospitais', href: '/admin/hospitals', icon: Home }
+      { name: 'Admin: Hospitais', href: '/admin/hospitals', icon: Home },
+      { name: 'Admin: Marketplace', href: '/admin/opportunities', icon: Store },
     ] : [])
   ];
 

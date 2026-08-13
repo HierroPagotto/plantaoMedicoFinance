@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { OpportunityCard } from '@/components/marketplace/OpportunityCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import { api } from '@/lib/api';
 import type { ShiftOpportunity } from '@/types/marketplace';
 import { useToast } from '@/hooks/use-toast';
 import { ClipboardList, Search } from 'lucide-react';
+import { isAxiosError } from 'axios';
 
 const specialties = [
   'Cardiologia',
@@ -41,8 +43,12 @@ const MarketplacePage = () => {
   const [specialty, setSpecialty] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const perPage = 12;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.listMarketplaceOpportunities({
@@ -50,22 +56,39 @@ const MarketplacePage = () => {
         specialty: specialty === 'all' ? undefined : specialty,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
+        verified_only: verifiedOnly || undefined,
+        page,
+        per_page: perPage,
       });
       setOpportunities(data.opportunities || []);
-    } catch (err: any) {
+      setTotal(data.total || 0);
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
       toast({
         variant: 'destructive',
         title: 'Erro ao carregar vagas',
-        description: err?.response?.data?.message || 'Tente novamente em instantes.',
+        description: message || 'Tente novamente em instantes.',
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [city, specialty, dateFrom, dateTo, verifiedOnly, page, toast]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+
+  const applyFilters = () => {
+    setPage(1);
+    // load will run via deps when page resets; if already page 1, force reload
+    if (page === 1) {
+      void load();
+    }
+  };
 
   return (
     <AppShell>
@@ -116,7 +139,14 @@ const MarketplacePage = () => {
             onChange={(e) => setDateTo(e.target.value)}
             aria-label="Data final"
           />
-          <Button className="md:col-span-4" onClick={load}>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground md:col-span-2">
+            <Checkbox
+              checked={verifiedOnly}
+              onCheckedChange={(checked) => setVerifiedOnly(checked === true)}
+            />
+            Somente hospitais verificados
+          </label>
+          <Button className="md:col-span-2" onClick={applyFilters}>
             <Search className="mr-2 h-4 w-4" />
             Filtrar vagas
           </Button>
@@ -136,6 +166,32 @@ const MarketplacePage = () => {
             {opportunities.map((item) => (
               <OpportunityCard key={item.id} opportunity={item} />
             ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Página {page} de {totalPages} ({total} vagas)
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </div>
           </div>
         )}
       </div>
