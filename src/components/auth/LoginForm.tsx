@@ -26,7 +26,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,14 +38,18 @@ export function LoginForm() {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      await api.login(data.email, data.password);
-      
+      const session = await api.login(data.email, data.password);
+
       toast({
         title: "Login realizado com sucesso!",
-        description: "Redirecionando para o dashboard...",
+        description: "Redirecionando...",
       });
-      
-      navigate('/dashboard');
+
+      if (session.role === 'hospital_staff') {
+        navigate('/hospital');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       toast({
         variant: "destructive",

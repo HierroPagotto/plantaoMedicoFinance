@@ -1,5 +1,23 @@
 import axios from 'axios';
-import { getShiftById } from './api';
+
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ?? 'https://api.medsinc.com.br/api';
+
+export type AuthRole = 'doctor' | 'hospital_staff' | 'platform_admin';
+
+export type LoginResponse = {
+    token: string;
+    role: AuthRole;
+    name: string;
+    email?: string;
+    is_admin?: boolean;
+    doctor_id?: number;
+    staff_id?: number;
+    hospital_id?: number;
+    staff_role?: 'hospital_admin' | 'hospital_recruiter';
+    hospital?: Record<string, unknown>;
+    message?: string;
+};
 
 class ApiClient {
     private api: any;
@@ -7,7 +25,7 @@ class ApiClient {
 
     constructor() {
         this.api = axios.create({
-            baseURL: 'https://api.medsinc.com.br/api',
+            baseURL: API_BASE_URL,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -18,8 +36,9 @@ class ApiClient {
         this.api.interceptors.request.use((config: any) => {
             const token = localStorage.getItem('token') || this.token;
             if (token) {
-                config.headers.Authorization = token;
-                this.token = token;
+                const value = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+                config.headers.Authorization = value;
+                this.token = token.replace(/^Bearer\s+/i, '');
             }
             return config;
         }, (error: any) => {
@@ -28,14 +47,32 @@ class ApiClient {
     }
 
     isAuthenticated() {
-        return !!this.token;
+        return !!this.token || !!localStorage.getItem('token');
+    }
+
+    private persistSession(data: LoginResponse) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem(
+            'userData',
+            JSON.stringify({
+                name: data.name,
+                email: data.email,
+                role: data.role,
+                is_admin: data.is_admin ?? false,
+                doctor_id: data.doctor_id,
+                staff_id: data.staff_id,
+                hospital_id: data.hospital_id,
+                staff_role: data.staff_role,
+            })
+        );
+        this.token = data.token;
     }
 
     async uploadPhoto(file: File) {
         const formData = new FormData();
         formData.append('photo', file);
         const response = await this.api.post('/doctors/upload-photo', formData, {
-            headers: {'Content-Type': 'multipart/form-data'}
+            headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
     }
@@ -47,16 +84,69 @@ class ApiClient {
         return response.data;
     }
 
-    async login(email: string, password: string) {
+    async login(email: string, password: string): Promise<LoginResponse> {
         const response = await this.api.post('/login', { email, password });
-        localStorage.setItem('token', response.data.token);
-        this.token = response.data.token;
-        return response.data.token;
+        this.persistSession(response.data);
+        return response.data;
     }
 
     async logout() {
         localStorage.removeItem('token');
+        localStorage.removeItem('userData');
         this.token = null;
+    }
+
+    async getAuthMe() {
+        const response = await this.api.get('/auth/me');
+        return response.data;
+    }
+
+    async registerHospital(payload: {
+        hospital: {
+            name: string;
+            address: string;
+            latitude: number;
+            longitude: number;
+            city?: string;
+            state?: string;
+            cnpj?: string;
+        };
+        admin: {
+            name: string;
+            email: string;
+            password: string;
+            phone?: string;
+        };
+    }): Promise<LoginResponse> {
+        const response = await this.api.post('/auth/hospital/register', payload);
+        this.persistSession(response.data);
+        return response.data;
+    }
+
+    async getHospitalMe() {
+        const response = await this.api.get('/hospital/me');
+        return response.data;
+    }
+
+    async getHospitalStaff() {
+        const response = await this.api.get('/hospital/staff');
+        return response.data;
+    }
+
+    async createHospitalStaff(payload: {
+        name: string;
+        email: string;
+        password: string;
+        phone?: string;
+        staff_role?: 'hospital_admin' | 'hospital_recruiter';
+    }) {
+        const response = await this.api.post('/hospital/staff', payload);
+        return response.data;
+    }
+
+    async deactivateHospitalStaff(staffId: number) {
+        const response = await this.api.delete(`/hospital/staff/${staffId}`);
+        return response.data;
     }
 
     async register(doctor: any) {
@@ -112,7 +202,7 @@ class ApiClient {
         return response.data;
     }
 
-    async getDoctor(id: number|string) {
+    async getDoctor(id: number | string) {
         const response = await this.api.get(`/doctors/info/${id}`);
         return response.data;
     }
@@ -189,19 +279,18 @@ class ApiClient {
     }
 
     async changePassword(email: string, code: string, newPassword: string) {
-        const response = await this.api.post('/password-reset/change', { 
-            email, 
-            code, 
-            new_password: newPassword 
+        const response = await this.api.post('/password-reset/change', {
+            email,
+            code,
+            new_password: newPassword
         });
         return response.data;
     }
 
     async getShiftById(id: string | undefined) {
         if (!id) throw new Error('ID não informado');
-        const res = await fetch(`/api/shifts/${id}`);
-        if (!res.ok) throw new Error('Erro ao buscar plantão');
-        return await res.json();
+        const response = await this.api.get(`/shifts/${id}`);
+        return response.data;
     }
 
     async getGoal(year: number, month: number) {
