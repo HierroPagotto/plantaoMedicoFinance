@@ -21,6 +21,9 @@ import DoctorProfilePublic from "./pages/DoctorProfilePublic";
 import AdminUsers from './pages/Admin/Users';
 import AdminHospitals from './pages/Admin/Hospitals';
 import LandingPage from './pages/LandingPage';
+import HospitalDashboard from './pages/Hospital/Dashboard';
+import HospitalStaffPage from './pages/Hospital/Staff';
+import HospitalRegister from './pages/Hospital/Register';
 
 const queryClient = new QueryClient();
 
@@ -42,9 +45,10 @@ const App = () => (
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
+          <Route path="/logout" element={<Logout />} />
           <Route path="/register" element={<Register />} />
           <Route path="/password-reset" element={<PasswordReset />} />
+          <Route path="/hospital/register" element={<HospitalRegister />} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
@@ -57,6 +61,10 @@ const App = () => (
           <Route path="/doctor-profile/:id" element={<DoctorProfilePublic />} />
           <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><AdminUsers /></AdminRoute></ProtectedRoute>} />
           <Route path="/admin/hospitals" element={<ProtectedRoute><AdminRoute><AdminHospitals /></AdminRoute></ProtectedRoute>} />
+
+          <Route path="/hospital" element={<ProtectedRoute role="hospital_staff"><HospitalDashboard /></ProtectedRoute>} />
+          <Route path="/hospital/staff" element={<ProtectedRoute role="hospital_staff"><HospitalStaffPage /></ProtectedRoute>} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
