@@ -112,7 +112,15 @@ export const AppShell = ({ children }: AppShellProps) => {
                   {user.photo_url ? (
                     <AvatarImage src={user.photo_url} alt={user.name} />
                   ) : (
-                    <AvatarFallback>{user.name.split(' ').map(name => name[0]).join('')}</AvatarFallback>
+                    <AvatarFallback>
+                      {(user.name || '?')
+                        .split(' ')
+                        .filter(Boolean)
+                        .map((part) => part[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase() || '?'}
+                    </AvatarFallback>
                   )}
                 </Avatar>
                 <div className="ml-3 overflow-hidden">

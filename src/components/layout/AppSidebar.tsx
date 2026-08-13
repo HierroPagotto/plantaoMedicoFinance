@@ -80,7 +80,13 @@ export const AppSidebar = ({ isOpen, setIsOpen }: AppSidebarProps) => {
         <div className={cn("flex items-center", !isOpen && "justify-center")}>
           <div className="w-10 h-10 rounded-full bg-medical-purple flex items-center justify-center">
             <span className="text-white font-bold">
-              {user.name.split(' ').map(name => name[0]).join('')}
+              {(user.name || '?')
+                .split(' ')
+                .filter(Boolean)
+                .map((part) => part[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || '?'}
             </span>
           </div>
           {isOpen && (
