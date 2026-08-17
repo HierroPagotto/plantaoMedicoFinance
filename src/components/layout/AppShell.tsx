@@ -17,6 +17,7 @@ import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun,
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import Header from './Header';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -179,6 +180,9 @@ export const AppShell = ({ children }: AppShellProps) => {
 
         <SidebarInset>
           <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <div className="hidden md:flex items-center justify-end border-b border-border px-4 py-2">
+            <NotificationBell />
+          </div>
           <main className="flex-1 overflow-auto p-4 md:p-6">
             {children}
           </main>

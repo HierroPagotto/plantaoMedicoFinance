@@ -8,6 +8,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 type HospitalShellProps = {
   children: React.ReactNode;
@@ -51,6 +52,7 @@ export function HospitalShell({ children }: HospitalShellProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <NotificationBell variant="hospital" />
             <span className="hidden text-sm text-slate-600 sm:inline">
               {user.name}
               {user.staff_role ? ` · ${user.staff_role}` : ''}
