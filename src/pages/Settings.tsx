@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import api from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon } from 'lucide-react';
+import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
 
 const specialties = [
   'Cardiologia',
@@ -370,6 +371,8 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+
+          <NotificationPreferencesCard audience="doctor" />
         </div>
 
         <div className="space-y-6">

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { isAxiosError } from 'axios';
 import type { MarketplaceHospital } from '@/types/marketplace';
+import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
 
 type HospitalMe = {
   name?: string;
@@ -110,6 +111,10 @@ const HospitalSettingsPage = () => {
                 </p>
               </CardContent>
             </Card>
+
+            <div className="md:col-span-2">
+              <NotificationPreferencesCard audience="hospital" />
+            </div>
           </div>
         )}
       </div>

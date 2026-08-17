@@ -454,6 +454,16 @@ class ApiClient {
         const response = await this.api.post('/notifications/read-all');
         return response.data;
     }
+
+    async getNotificationPreferences() {
+        const response = await this.api.get('/notifications/preferences');
+        return response.data;
+    }
+
+    async updateNotificationPreferences(payload: Record<string, boolean>) {
+        const response = await this.api.put('/notifications/preferences', payload);
+        return response.data;
+    }
 }
 
 export const api = new ApiClient();
