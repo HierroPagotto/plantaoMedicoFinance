@@ -430,6 +430,30 @@ class ApiClient {
         const response = await this.api.post(`/admin/opportunities/${opportunityId}/cancel`);
         return response.data;
     }
+
+    async listNotifications(params?: {
+        page?: number;
+        per_page?: number;
+        unread_only?: boolean;
+    }) {
+        const response = await this.api.get('/notifications', { params });
+        return response.data;
+    }
+
+    async getNotificationsUnreadCount() {
+        const response = await this.api.get('/notifications/unread-count');
+        return response.data;
+    }
+
+    async markNotificationRead(id: number | string) {
+        const response = await this.api.post(`/notifications/${id}/read`);
+        return response.data;
+    }
+
+    async markAllNotificationsRead() {
+        const response = await this.api.post('/notifications/read-all');
+        return response.data;
+    }
 }
 
 export const api = new ApiClient();
