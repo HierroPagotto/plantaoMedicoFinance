@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatShortDate } from '@/lib/date-utils';
+import { formatOpportunityRequirements } from '@/lib/marketplace-requirements';
 import { ArrowLeft } from 'lucide-react';
 import { isAxiosError } from 'axios';
 
@@ -172,6 +173,11 @@ const HospitalOpportunityDetailPage = () => {
               · {opportunity.slots_filled}/{opportunity.slots_total} vagas ·{' '}
               {opportunity.city || '—'}
             </p>
+            {formatOpportunityRequirements(opportunity) && (
+              <p className="mt-1 text-sm text-slate-500">
+                Requisitos: {formatOpportunityRequirements(opportunity)}
+              </p>
+            )}
             {opportunity.notes && (
               <p className="mt-2 text-sm text-slate-500">{opportunity.notes}</p>
             )}

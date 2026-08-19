@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { api } from '@/lib/api';
@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatShortDate } from '@/lib/date-utils';
+import { formatOpportunityRequirements } from '@/lib/marketplace-requirements';
 import { ArrowLeft, Calendar, Clock, MapPin, Stethoscope, Wallet } from 'lucide-react';
+import { isAxiosError } from 'axios';
 
 function formatTime(value?: string) {
   if (!value) return '—';
@@ -17,6 +19,11 @@ function formatTime(value?: string) {
 
 function formatMoney(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function axiosErrorMessage(err: unknown, fallback: string) {
+  if (!isAxiosError(err)) return fallback;
+  return (err.response?.data as { message?: string } | undefined)?.message || fallback;
 }
 
 const MarketplaceDetailPage = () => {
@@ -28,7 +35,7 @@ const MarketplaceDetailPage = () => {
   const [myApplication, setMyApplication] = useState<OpportunityApplication | null>(null);
   const [message, setMessage] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -42,20 +49,20 @@ const MarketplaceDetailPage = () => {
           String(a.opportunity_id) === String(id) && a.status !== 'withdrawn'
       );
       setMyApplication(mine || null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         variant: 'destructive',
         title: 'Não foi possível abrir a vaga',
-        description: err?.response?.data?.message || 'Tente novamente.',
+        description: axiosErrorMessage(err, 'Tente novamente.'),
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, toast]);
 
   useEffect(() => {
     load();
-  }, [id]);
+  }, [load]);
 
   const onApply = async () => {
     if (!id) return;
@@ -67,11 +74,11 @@ const MarketplaceDetailPage = () => {
         title: 'Candidatura enviada',
         description: 'O hospital foi notificado do seu interesse.',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         variant: 'destructive',
         title: 'Não foi possível candidatar-se',
-        description: err?.response?.data?.message || 'Tente novamente.',
+        description: axiosErrorMessage(err, 'Tente novamente.'),
       });
     } finally {
       setSubmitting(false);
@@ -105,6 +112,7 @@ const MarketplaceDetailPage = () => {
     opportunity.hospital?.city ||
     opportunity.hospital?.address ||
     '—';
+  const requirements = formatOpportunityRequirements(opportunity);
   const canApply =
     opportunity.status === 'open' &&
     opportunity.slots_remaining > 0 &&
@@ -155,6 +163,12 @@ const MarketplaceDetailPage = () => {
                 : 'Pagamento a definir'}
             </div>
           </div>
+
+          {requirements && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge variant="outline">Requer {requirements}</Badge>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4">
             <div>

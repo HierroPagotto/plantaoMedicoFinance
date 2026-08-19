@@ -364,6 +364,10 @@ class ApiClient {
         city?: string;
         slots_total?: number;
         notes?: string;
+        requires_acls?: boolean;
+        requires_bls?: boolean;
+        requires_atls?: boolean;
+        requires_pals?: boolean;
     }) {
         const response = await this.api.post('/marketplace/opportunities', payload);
         return response.data;
@@ -381,6 +385,10 @@ class ApiClient {
             city: string;
             slots_total: number;
             notes: string;
+            requires_acls: boolean;
+            requires_bls: boolean;
+            requires_atls: boolean;
+            requires_pals: boolean;
         }>
     ) {
         const response = await this.api.put(`/marketplace/opportunities/${id}`, payload);

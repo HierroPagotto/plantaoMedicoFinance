@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import { isAxiosError } from 'axios';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const specialties = [
   'Cardiologia',
@@ -55,6 +56,10 @@ const schema = z
     city: z.string().optional(),
     slots_total: z.coerce.number().int().min(1, 'Pelo menos 1 vaga'),
     notes: z.string().optional(),
+    requires_acls: z.boolean().default(false),
+    requires_bls: z.boolean().default(false),
+    requires_atls: z.boolean().default(false),
+    requires_pals: z.boolean().default(false),
   })
   .refine((data) => !data.payment_date || !data.date || data.payment_date >= data.date, {
     message: 'O pagamento não pode ser anterior à data do plantão',
@@ -89,6 +94,10 @@ const HospitalNewOpportunityPage = () => {
       city: readHospitalCity(),
       slots_total: 1,
       notes: '',
+      requires_acls: false,
+      requires_bls: false,
+      requires_atls: false,
+      requires_pals: false,
     },
   });
 
@@ -105,6 +114,10 @@ const HospitalNewOpportunityPage = () => {
         city: data.city || undefined,
         slots_total: data.slots_total,
         notes: data.notes || undefined,
+        requires_acls: data.requires_acls,
+        requires_bls: data.requires_bls,
+        requires_atls: data.requires_atls,
+        requires_pals: data.requires_pals,
       });
       toast({
         title: 'Vaga publicada',
@@ -268,6 +281,41 @@ const HospitalNewOpportunityPage = () => {
                 </FormItem>
               )}
             />
+            <div className="space-y-3 rounded-lg border border-slate-200 p-4">
+              <div>
+                <FormLabel>Requisitos (opcional)</FormLabel>
+                <p className="text-xs text-slate-500">
+                  Se marcados, só médicos com essas certificações no perfil verão a vaga.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    ['requires_acls', 'ACLS'],
+                    ['requires_bls', 'BLS'],
+                    ['requires_atls', 'ATLS'],
+                    ['requires_pals', 'PALS'],
+                  ] as const
+                ).map(([name, label]) => (
+                  <FormField
+                    key={name}
+                    control={form.control}
+                    name={name}
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => field.onChange(checked === true)}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">{label}</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
             <FormField
               control={form.control}
               name="notes"

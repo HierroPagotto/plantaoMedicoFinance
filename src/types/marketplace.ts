@@ -21,6 +21,10 @@ export type ShiftOpportunity = {
   specialty: string;
   value: number;
   payment_date?: string | null;
+  requires_acls?: boolean;
+  requires_bls?: boolean;
+  requires_atls?: boolean;
+  requires_pals?: boolean;
   city?: string | null;
   slots_total: number;
   slots_filled: number;

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ShiftOpportunity } from '@/types/marketplace';
 import { formatShortDate } from '@/lib/date-utils';
+import { formatOpportunityRequirements } from '@/lib/marketplace-requirements';
 
 function formatTime(value?: string) {
   if (!value) return '—';
@@ -25,6 +26,7 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
     opportunity.hospital?.city ||
     opportunity.hospital?.address ||
     '—';
+  const requirements = formatOpportunityRequirements(opportunity);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40">
@@ -67,6 +69,12 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
             : 'Pagamento a definir'}
         </div>
       </div>
+
+      {requirements && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Badge variant="outline">Requer {requirements}</Badge>
+        </div>
+      )}
 
       <Button asChild className="w-full">
         <Link to={`/marketplace/${opportunity.id}`}>Ver detalhes</Link>
