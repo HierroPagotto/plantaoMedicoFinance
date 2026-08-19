@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatShortDate } from '@/lib/date-utils';
-import { ArrowLeft, Calendar, Clock, MapPin, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Stethoscope, Wallet } from 'lucide-react';
 
 function formatTime(value?: string) {
   if (!value) return '—';
@@ -147,6 +147,12 @@ const MarketplaceDetailPage = () => {
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-primary" />
               {city}
+            </div>
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              {opportunity.payment_date
+                ? `Pagamento previsto: ${formatShortDate(opportunity.payment_date)}`
+                : 'Pagamento a definir'}
             </div>
           </div>
 

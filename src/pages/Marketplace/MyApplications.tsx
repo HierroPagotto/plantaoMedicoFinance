@@ -127,6 +127,9 @@ const MyApplicationsPage = () => {
                           {formatShortDate(opp.date)} · {formatTime(opp.start_time)}–
                           {formatTime(opp.end_time)} · {opp.specialty} ·{' '}
                           {formatMoney(Number(opp.value))}
+                          {opp.payment_date
+                            ? ` · pagamento ${formatShortDate(opp.payment_date)}`
+                            : ''}
                         </p>
                       )}
                       {app.message && (

@@ -165,8 +165,12 @@ const HospitalOpportunityDetailPage = () => {
             </div>
             <p className="mt-1 text-slate-600">
               {formatTime(opportunity.start_time)}–{formatTime(opportunity.end_time)} ·{' '}
-              {formatMoney(Number(opportunity.value))} · {opportunity.slots_filled}/
-              {opportunity.slots_total} vagas · {opportunity.city || '—'}
+              {formatMoney(Number(opportunity.value))} · pagamento{' '}
+              {opportunity.payment_date
+                ? formatShortDate(opportunity.payment_date)
+                : 'a definir'}{' '}
+              · {opportunity.slots_filled}/{opportunity.slots_total} vagas ·{' '}
+              {opportunity.city || '—'}
             </p>
             {opportunity.notes && (
               <p className="mt-2 text-sm text-slate-500">{opportunity.notes}</p>

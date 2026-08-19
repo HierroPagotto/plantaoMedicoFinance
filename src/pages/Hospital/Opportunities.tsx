@@ -115,6 +115,7 @@ const HospitalOpportunitiesPage = () => {
                   <th className="px-4 py-3">Horário</th>
                   <th className="px-4 py-3">Especialidade</th>
                   <th className="px-4 py-3">Valor</th>
+                  <th className="px-4 py-3">Pagamento</th>
                   <th className="px-4 py-3">Vagas</th>
                   <th className="px-4 py-3">Candidaturas</th>
                   <th className="px-4 py-3">Status</th>
@@ -130,6 +131,9 @@ const HospitalOpportunitiesPage = () => {
                     </td>
                     <td className="px-4 py-3">{item.specialty}</td>
                     <td className="px-4 py-3">{formatMoney(Number(item.value))}</td>
+                    <td className="px-4 py-3">
+                      {item.payment_date ? formatShortDate(item.payment_date) : 'A definir'}
+                    </td>
                     <td className="px-4 py-3">
                       {item.slots_filled}/{item.slots_total}
                     </td>

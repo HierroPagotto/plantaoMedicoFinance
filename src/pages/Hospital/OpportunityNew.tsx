@@ -44,16 +44,22 @@ const specialties = [
   'UTI',
 ];
 
-const schema = z.object({
-  date: z.string().min(1, 'Informe a data'),
-  start_time: z.string().min(1, 'Informe o horário de início'),
-  end_time: z.string().min(1, 'Informe o horário de término'),
-  specialty: z.string().min(1, 'Informe a especialidade'),
-  value: z.coerce.number().positive('Valor deve ser maior que zero'),
-  city: z.string().optional(),
-  slots_total: z.coerce.number().int().min(1, 'Pelo menos 1 vaga'),
-  notes: z.string().optional(),
-});
+const schema = z
+  .object({
+    date: z.string().min(1, 'Informe a data'),
+    start_time: z.string().min(1, 'Informe o horário de início'),
+    end_time: z.string().min(1, 'Informe o horário de término'),
+    specialty: z.string().min(1, 'Informe a especialidade'),
+    value: z.coerce.number().positive('Valor deve ser maior que zero'),
+    payment_date: z.string().min(1, 'Informe a data prevista de pagamento'),
+    city: z.string().optional(),
+    slots_total: z.coerce.number().int().min(1, 'Pelo menos 1 vaga'),
+    notes: z.string().optional(),
+  })
+  .refine((data) => !data.payment_date || !data.date || data.payment_date >= data.date, {
+    message: 'O pagamento não pode ser anterior à data do plantão',
+    path: ['payment_date'],
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -79,6 +85,7 @@ const HospitalNewOpportunityPage = () => {
       end_time: '07:00',
       specialty: 'Clínica Médica',
       value: 1400,
+      payment_date: '',
       city: readHospitalCity(),
       slots_total: 1,
       notes: '',
@@ -94,6 +101,7 @@ const HospitalNewOpportunityPage = () => {
         end_time: data.end_time.length === 5 ? `${data.end_time}:00` : data.end_time,
         specialty: data.specialty,
         value: data.value,
+        payment_date: data.payment_date,
         city: data.city || undefined,
         slots_total: data.slots_total,
         notes: data.notes || undefined,
@@ -129,7 +137,7 @@ const HospitalNewOpportunityPage = () => {
           </Button>
           <h1 className="text-2xl font-semibold">Publicar plantão</h1>
           <p className="text-slate-600">
-            Ex.: 25/08/2026 · 19:00–07:00 · Clínica Médica · R$ 1.400 · 1 vaga
+            Ex.: 25/08/2026 · 19:00–07:00 · Clínica Médica · R$ 1.400 · pagamento em 30 dias
           </p>
         </div>
 
@@ -244,6 +252,22 @@ const HospitalNewOpportunityPage = () => {
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="payment_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data prevista de pagamento</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <p className="text-xs text-slate-500">
+                    Quando o médico deve receber (ex.: 30 ou 45 dias após o plantão).
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="notes"

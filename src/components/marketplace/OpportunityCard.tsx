@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Stethoscope, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Stethoscope, Users, Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ShiftOpportunity } from '@/types/marketplace';
@@ -56,9 +56,15 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
           <Stethoscope className="h-4 w-4 text-primary" />
           {opportunity.specialty}
         </div>
-        <div className="flex items-center gap-2 font-medium text-foreground sm:col-span-2">
+        <div className="flex items-center gap-2 font-medium text-foreground">
           <Users className="h-4 w-4 text-primary" />
           {formatMoney(Number(opportunity.value))}
+        </div>
+        <div className="flex items-center gap-2">
+          <Wallet className="h-4 w-4 text-primary" />
+          {opportunity.payment_date
+            ? `Pagamento ${formatShortDate(opportunity.payment_date)}`
+            : 'Pagamento a definir'}
         </div>
       </div>
 

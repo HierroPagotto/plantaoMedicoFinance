@@ -360,6 +360,7 @@ class ApiClient {
         end_time: string;
         specialty: string;
         value: number;
+        payment_date: string;
         city?: string;
         slots_total?: number;
         notes?: string;
@@ -376,6 +377,7 @@ class ApiClient {
             end_time: string;
             specialty: string;
             value: number;
+            payment_date: string;
             city: string;
             slots_total: number;
             notes: string;

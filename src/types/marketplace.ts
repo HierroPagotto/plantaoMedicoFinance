@@ -20,6 +20,7 @@ export type ShiftOpportunity = {
   end_time: string;
   specialty: string;
   value: number;
+  payment_date?: string | null;
   city?: string | null;
   slots_total: number;
   slots_filled: number;
