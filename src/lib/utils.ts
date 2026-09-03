@@ -1,11 +1,25 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { knownMedicalSpecialties, OTHER_SPECIALTY } from "@/types/doctor"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+function resolveSpecialtyFromApi(mainSpecialty: string | null | undefined) {
+  const specialty = (mainSpecialty || "").trim()
+  if (!specialty) {
+    return { mainSpecialty: "", customSpecialty: "" }
+  }
+  if (knownMedicalSpecialties.includes(specialty)) {
+    return { mainSpecialty: specialty, customSpecialty: "" }
+  }
+  return { mainSpecialty: OTHER_SPECIALTY, customSpecialty: specialty }
+}
+
 export function transformApiToForm(data: any): any {
+  const { mainSpecialty, customSpecialty } = resolveSpecialtyFromApi(data.main_specialty)
+
   return {
     personalInfo: {
       fullName: data.name || "",
@@ -18,13 +32,14 @@ export function transformApiToForm(data: any): any {
       email: data.email || "",
     },
     specialties: {
-      mainSpecialty: data.main_specialty || "",
-      procedures: data.procedures ? data.procedures.split(",").map(p => p.trim()) : [],
-      shiftTypes: data.shift_types ? data.shift_types.split(",").map(s => s.trim()) : [],
+      mainSpecialty,
+      customSpecialty,
+      procedures: data.procedures ? data.procedures.split(",").map((p: string) => p.trim()) : [],
+      shiftTypes: data.shift_types ? data.shift_types.split(",").map((s: string) => s.trim()) : [],
     },
     availability: {
-      preferredPeriods: data.preferred_periods ? data.preferred_periods.split(",").map(p => p.trim()) : [],
-      preferredDays: data.preferred_days ? data.preferred_days.split(",").map(d => d.trim()) : [],
+      preferredPeriods: data.preferred_periods ? data.preferred_periods.split(",").map((p: string) => p.trim()) : [],
+      preferredDays: data.preferred_days ? data.preferred_days.split(",").map((d: string) => d.trim()) : [],
       acceptsFixedShifts: data.accepts_fixed_shifts ?? false,
       acceptsTemporaryShifts: data.accepts_temporary_shifts ?? false,
       maxDistanceKm: Number(data.max_distance_km) ?? 50,
@@ -32,7 +47,7 @@ export function transformApiToForm(data: any): any {
     location: {
       state: data.state || "",
       citiesOfWork: data.cities_of_work
-        ? data.cities_of_work.split(",").map(c => c.trim())
+        ? data.cities_of_work.split(",").map((c: string) => c.trim())
         : [],
     },
     certifications: {
@@ -56,6 +71,11 @@ export function transformApiToForm(data: any): any {
 }
 
 export function transformFormToApi(values: any): any {
+  const mainSpecialty =
+    values.specialties.mainSpecialty === OTHER_SPECIALTY
+      ? (values.specialties.customSpecialty || "").trim()
+      : values.specialties.mainSpecialty
+
   return {
     name: values.personalInfo.fullName,
     photo_url: values.personalInfo.photoUrl,
@@ -65,7 +85,7 @@ export function transformFormToApi(values: any): any {
     city: values.personalInfo.city,
     phone: values.personalInfo.phone,
     email: values.personalInfo.email,
-    main_specialty: values.specialties.mainSpecialty,
+    main_specialty: mainSpecialty,
     procedures: values.specialties.procedures.join(", "),
     shift_types: values.specialties.shiftTypes.join(", "),
     preferred_periods: values.availability.preferredPeriods.join(", "),

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -23,30 +22,28 @@ import {
 } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { medicalSpecialties, OTHER_SPECIALTY } from '@/types/doctor';
 
-const specialties = [
-  'Cardiologia',
-  'Clínica Médica',
-  'Dermatologia',
-  'Endocrinologia',
-  'Gastroenterologia',
-  'Geriatria',
-  'Ginecologia',
-  'Neurologia',
-  'Oftalmologia',
-  'Ortopedia',
-  'Pediatria',
-  'Psiquiatria',
-  'Radiologia',
-  'Urologia'
-];
-
-const formSchema = z.object({
-  name: z.string().min(3, { message: 'Nome deve ter no mínimo 3 caracteres' }),
-  email: z.string().email({ message: 'Email inválido' }),
-  password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }),
-  specialty: z.string().min(1, { message: 'Selecione uma especialidade' }),
-});
+const formSchema = z
+  .object({
+    name: z.string().min(3, { message: 'Nome deve ter no mínimo 3 caracteres' }),
+    email: z.string().email({ message: 'Email inválido' }),
+    password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }),
+    specialty: z.string().min(1, { message: 'Selecione uma especialidade' }),
+    customSpecialty: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.specialty === OTHER_SPECIALTY) {
+      const custom = (data.customSpecialty || '').trim();
+      if (custom.length < 3) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Informe a especialidade (mín. 3 caracteres)',
+          path: ['customSpecialty'],
+        });
+      }
+    }
+  });
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -62,38 +59,45 @@ export function RegisterForm() {
       email: '',
       password: '',
       specialty: '',
-    }
+      customSpecialty: '',
+    },
   });
+
+  const selectedSpecialty = form.watch('specialty');
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
+      const mainSpecialty =
+        data.specialty === OTHER_SPECIALTY
+          ? (data.customSpecialty || '').trim()
+          : data.specialty;
+
       await api.register({
         name: data.name,
         email: data.email,
         password: data.password,
-        main_specialty: data.specialty
+        main_specialty: mainSpecialty,
       });
 
       toast({
-        title: "Conta criada com sucesso!",
-        description: "Redirecionando para o dashboard...",
+        title: 'Conta criada com sucesso!',
+        description: 'Redirecionando para o dashboard...',
       });
 
       await api.login(data.email, data.password);
 
       navigate('/dashboard');
-
     } catch (error: any) {
-      let errorMessage = "Erro ao criar conta";
+      let errorMessage = 'Erro ao criar conta';
 
       if (error.response) {
         errorMessage = error.response.data.message || errorMessage;
       }
 
       toast({
-        variant: "destructive",
-        title: "Erro no cadastro",
+        variant: 'destructive',
+        title: 'Erro no cadastro',
         description: errorMessage,
       });
     } finally {
@@ -152,14 +156,22 @@ export function RegisterForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Especialidade principal</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  if (value !== OTHER_SPECIALTY) {
+                    form.setValue('customSpecialty', '');
+                  }
+                }}
+                value={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione sua especialidade" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {specialties.map((specialty) => (
+                  {medicalSpecialties.map((specialty) => (
                     <SelectItem key={specialty} value={specialty}>
                       {specialty}
                     </SelectItem>
@@ -171,8 +183,24 @@ export function RegisterForm() {
           )}
         />
 
+        {selectedSpecialty === OTHER_SPECIALTY && (
+          <FormField
+            control={form.control}
+            name="customSpecialty"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Qual especialidade?</FormLabel>
+                <FormControl>
+                  <Input placeholder="Descreva sua especialidade" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Cadastrando..." : "Cadastrar"}
+          {loading ? 'Cadastrando...' : 'Cadastrar'}
         </Button>
       </form>
     </Form>

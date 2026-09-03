@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import {
   brazilianStates,
   medicalSpecialties,
+  OTHER_SPECIALTY,
   procedures,
   shiftTypes,
   periods,
@@ -60,11 +61,25 @@ const formSchema = z.object({
     phone: z.string().regex(phoneRegex, { message: "Telefone inválido" }),
     email: z.string().email({ message: "E-mail inválido" }),
   }),
-  specialties: z.object({
-    mainSpecialty: z.string().min(1, { message: "Especialidade é obrigatória" }),
-    procedures: z.array(z.string()).min(1, { message: "Selecione pelo menos um procedimento" }),
-    shiftTypes: z.array(z.string()).min(1, { message: "Selecione pelo menos um tipo de plantão" }),
-  }),
+  specialties: z
+    .object({
+      mainSpecialty: z.string().min(1, { message: "Especialidade é obrigatória" }),
+      customSpecialty: z.string().optional(),
+      procedures: z.array(z.string()).min(1, { message: "Selecione pelo menos um procedimento" }),
+      shiftTypes: z.array(z.string()).min(1, { message: "Selecione pelo menos um tipo de plantão" }),
+    })
+    .superRefine((data, ctx) => {
+      if (data.mainSpecialty === OTHER_SPECIALTY) {
+        const custom = (data.customSpecialty || "").trim();
+        if (custom.length < 3) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Informe a especialidade (mín. 3 caracteres)",
+            path: ["customSpecialty"],
+          });
+        }
+      }
+    }),
   availability: z.object({
     preferredPeriods: z.array(z.string()).min(1, { message: "Selecione pelo menos um período" }),
     preferredDays: z.array(z.string()).min(1, { message: "Selecione pelo menos um dia" }),
@@ -119,6 +134,7 @@ export default function DoctorRegistration() {
       },
       specialties: {
         mainSpecialty: "",
+        customSpecialty: "",
         procedures: [],
         shiftTypes: [],
       },
@@ -437,7 +453,12 @@ export default function DoctorRegistration() {
                   render={({ field }) => (
                     <Select
                       value={field.value}
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        if (value !== OTHER_SPECIALTY) {
+                          form.setValue("specialties.customSpecialty", "");
+                        }
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione sua especialidade" />
@@ -456,6 +477,27 @@ export default function DoctorRegistration() {
                   <p className="text-sm text-destructive mt-1">
                     {form.formState.errors.specialties.mainSpecialty.message}
                   </p>
+                )}
+                {form.watch("specialties.mainSpecialty") === OTHER_SPECIALTY && (
+                  <div className="mt-3">
+                    <Label htmlFor="customSpecialty">Qual especialidade? *</Label>
+                    <Controller
+                      control={form.control}
+                      name="specialties.customSpecialty"
+                      render={({ field }) => (
+                        <Input
+                          id="customSpecialty"
+                          placeholder="Descreva sua especialidade"
+                          {...field}
+                        />
+                      )}
+                    />
+                    {form.formState.errors.specialties?.customSpecialty && (
+                      <p className="text-sm text-destructive mt-1">
+                        {form.formState.errors.specialties.customSpecialty.message}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 
