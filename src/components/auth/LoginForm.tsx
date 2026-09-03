@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/form';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { isDoctorProfileComplete, DOCTOR_PROFILE_SETUP_PATH } from '@/lib/doctor-profile';
 const formSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(6, { message: 'Senha deve ter pelo menos 6 caracteres' }),
@@ -47,9 +48,14 @@ export function LoginForm() {
 
       if (session.role === 'hospital_staff') {
         navigate('/hospital');
-      } else {
-        navigate('/dashboard');
+        return;
       }
+
+      const me = await api.getAuthMe();
+      localStorage.setItem('userData', JSON.stringify(me));
+      navigate(
+        isDoctorProfileComplete(me) ? '/dashboard' : DOCTOR_PROFILE_SETUP_PATH
+      );
     } catch (error) {
       toast({
         variant: "destructive",

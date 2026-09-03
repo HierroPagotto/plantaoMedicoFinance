@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import {
   brazilianStates,
   medicalSpecialties,
@@ -46,6 +47,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { api } from "@/lib/api";
 import { transformApiToForm, transformFormToApi } from "@/lib/utils";
+import { isDoctorProfileComplete } from "@/lib/doctor-profile";
 
 const phoneRegex = /^\(\d{2}\) \d{5}-\d{4}$/;
 const crmRegex = /^\d{4,10}$/;
@@ -113,11 +115,13 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function DoctorRegistration() {
+  const navigate = useNavigate();
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cities, setCities] = useState<string[]>([]);
   const [newCity, setNewCity] = useState("");
+  const [needsSetup, setNeedsSetup] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -219,6 +223,7 @@ export default function DoctorRegistration() {
     const loadDoctorData = async () => {
       try {
         const doctorData = await api.getMyData();
+        setNeedsSetup(!isDoctorProfileComplete(doctorData));
         const formData = transformApiToForm(doctorData);
 
         if (formData.personalInfo.photoUrl) {
@@ -257,7 +262,12 @@ export default function DoctorRegistration() {
 
       await api.updateMyData(transformFormToApi(doctorData));
 
+      const me = await api.getAuthMe();
+      localStorage.setItem("userData", JSON.stringify(me));
+      setNeedsSetup(!isDoctorProfileComplete(me));
+
       toast.success("Perfil médico atualizado com sucesso!");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Erro ao salvar:", error);
       toast.error("Erro ao atualizar o perfil");
@@ -270,6 +280,15 @@ export default function DoctorRegistration() {
     <AppShell>
       <div className="container mx-auto py-6 overflow-hidden">
         <h1 className="text-2xl font-bold mb-6">Cadastro de Médico Plantonista</h1>
+
+        {needsSetup && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <h3 className="font-medium text-amber-800">Complete seu perfil para continuar</h3>
+            <p className="text-amber-700 mt-1">
+              Precisamos do seu CRM, telefone, cidade e demais dados profissionais antes de liberar o app.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card>

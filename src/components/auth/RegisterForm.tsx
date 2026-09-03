@@ -23,6 +23,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { medicalSpecialties, OTHER_SPECIALTY } from '@/types/doctor';
+import { DOCTOR_PROFILE_SETUP_PATH } from '@/lib/doctor-profile';
 
 const formSchema = z
   .object({
@@ -82,12 +83,14 @@ export function RegisterForm() {
 
       toast({
         title: 'Conta criada com sucesso!',
-        description: 'Redirecionando para o dashboard...',
+        description: 'Complete seu perfil médico para continuar...',
       });
 
       await api.login(data.email, data.password);
 
-      navigate('/dashboard');
+      const me = await api.getAuthMe();
+      localStorage.setItem('userData', JSON.stringify(me));
+      navigate(DOCTOR_PROFILE_SETUP_PATH);
     } catch (error: any) {
       let errorMessage = 'Erro ao criar conta';
 
