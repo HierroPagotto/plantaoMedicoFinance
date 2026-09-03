@@ -1,5 +1,5 @@
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AppShell } from "@/components/layout/AppShell";
@@ -28,13 +28,9 @@ import {
   shiftTypes,
   periods,
   weekDays,
-  Doctor
 } from "@/types/doctor";
-import { supabase } from "@/integrations/supabase/client";
 import {
   User,
-  Mail,
-  Phone,
   MapPin,
   Calendar,
   Award,
@@ -42,15 +38,63 @@ import {
   FileText,
   Save,
   Plus,
-  CheckCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { api } from "@/lib/api";
-import { transformApiToForm, transformFormToApi } from "@/lib/utils";
+import { cn, transformApiToForm, transformFormToApi } from "@/lib/utils";
 import { isDoctorProfileComplete } from "@/lib/doctor-profile";
 
 const phoneRegex = /^\(\d{2}\) \d{5}-\d{4}$/;
 const crmRegex = /^\d{4,10}$/;
+
+const PROFILE_FIELD_ORDER = [
+  "personalInfo.fullName",
+  "personalInfo.crm",
+  "personalInfo.crmState",
+  "personalInfo.graduationYear",
+  "personalInfo.city",
+  "personalInfo.phone",
+  "personalInfo.email",
+  "specialties.mainSpecialty",
+  "specialties.customSpecialty",
+  "specialties.procedures",
+  "specialties.shiftTypes",
+  "availability.preferredPeriods",
+  "availability.preferredDays",
+  "availability.maxDistanceKm",
+  "location.state",
+  "location.citiesOfWork",
+] as const;
+
+function getNestedError(errors: FieldErrors, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === "object" && key in acc) {
+      return (acc as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, errors);
+}
+
+function scrollToFirstInvalidField(errors: FieldErrors) {
+  for (const path of PROFILE_FIELD_ORDER) {
+    if (!getNestedError(errors, path)) continue;
+    const el = document.querySelector(
+      `[data-field="${path}"]`
+    ) as HTMLElement | null;
+    if (!el) continue;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const focusable = el.querySelector<HTMLElement>(
+      "input:not([type='hidden']), select, textarea, button[role='combobox'], [role='checkbox']"
+    );
+    focusable?.focus({ preventScroll: true });
+    break;
+  }
+}
+
+const inputErrorClass =
+  "border-destructive focus-visible:ring-destructive";
+const groupErrorClass =
+  "rounded-md border border-destructive bg-destructive/5 p-3";
 
 const formSchema = z.object({
   personalInfo: z.object({
@@ -125,6 +169,8 @@ export default function DoctorRegistration() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    shouldFocusError: true,
+    criteriaMode: "all",
     defaultValues: {
       personalInfo: {
         fullName: "",
@@ -188,14 +234,11 @@ export default function DoctorRegistration() {
     }
   };
 
-  // Format phone with mask
   const formatPhone = (value: string) => {
     if (!value) return "";
 
-    // Remove todos os caracteres não numéricos
     value = value.replace(/\D/g, "");
 
-    // Aplica a máscara (XX) XXXXX-XXXX
     if (value.length <= 2) {
       return value.replace(/^(\d{0,2})/, "($1");
     } else if (value.length <= 7) {
@@ -207,16 +250,31 @@ export default function DoctorRegistration() {
 
   const addCity = () => {
     if (newCity.trim() && !cities.includes(newCity.trim())) {
-      setCities([...cities, newCity.trim()]);
+      const next = [...cities, newCity.trim()];
+      setCities(next);
       setNewCity("");
-      form.setValue("location.citiesOfWork", [...cities, newCity.trim()]);
+      form.setValue("location.citiesOfWork", next, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
     }
   };
 
   const removeCity = (city: string) => {
-    const updatedCities = cities.filter(c => c !== city);
+    const updatedCities = cities.filter((c) => c !== city);
     setCities(updatedCities);
-    form.setValue("location.citiesOfWork", updatedCities);
+    form.setValue("location.citiesOfWork", updatedCities, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  const fieldHasError = (path: string) =>
+    !!getNestedError(form.formState.errors, path);
+
+  const onInvalid = (errors: FieldErrors<FormValues>) => {
+    toast.error("Preencha os campos obrigatórios destacados");
+    requestAnimationFrame(() => scrollToFirstInvalidField(errors));
   };
 
   useEffect(() => {
@@ -290,7 +348,11 @@ export default function DoctorRegistration() {
           </div>
         )}
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form
+          onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+          className="space-y-8"
+          noValidate
+        >
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -322,12 +384,14 @@ export default function DoctorRegistration() {
                 </div>
               </div>
 
-              <div>
+              <div data-field="personalInfo.fullName">
                 <Label htmlFor="fullName">Nome Completo *</Label>
                 <Input
                   id="fullName"
                   {...form.register("personalInfo.fullName")}
                   placeholder="Digite seu nome completo"
+                  aria-invalid={fieldHasError("personalInfo.fullName")}
+                  className={cn(fieldHasError("personalInfo.fullName") && inputErrorClass)}
                 />
                 {form.formState.errors.personalInfo?.fullName && (
                   <p className="text-sm text-destructive mt-1">
@@ -337,12 +401,14 @@ export default function DoctorRegistration() {
               </div>
 
               <div className="flex gap-4">
-                <div className="flex-1">
+                <div className="flex-1" data-field="personalInfo.crm">
                   <Label htmlFor="crm">CRM *</Label>
                   <Input
                     id="crm"
                     {...form.register("personalInfo.crm")}
                     placeholder="Número do CRM"
+                    aria-invalid={fieldHasError("personalInfo.crm")}
+                    className={cn(fieldHasError("personalInfo.crm") && inputErrorClass)}
                   />
                   {form.formState.errors.personalInfo?.crm && (
                     <p className="text-sm text-destructive mt-1">
@@ -351,7 +417,7 @@ export default function DoctorRegistration() {
                   )}
                 </div>
 
-                <div className="w-1/3">
+                <div className="w-1/3" data-field="personalInfo.crmState">
                   <Label htmlFor="crmState">Estado *</Label>
                   <Controller
                     control={form.control}
@@ -361,7 +427,10 @@ export default function DoctorRegistration() {
                         value={field.value}
                         onValueChange={field.onChange}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger
+                          aria-invalid={fieldHasError("personalInfo.crmState")}
+                          className={cn(fieldHasError("personalInfo.crmState") && inputErrorClass)}
+                        >
                           <SelectValue placeholder="UF" />
                         </SelectTrigger>
                         <SelectContent>
@@ -382,7 +451,7 @@ export default function DoctorRegistration() {
                 </div>
               </div>
 
-              <div>
+              <div data-field="personalInfo.graduationYear">
                 <Label htmlFor="graduationYear">Ano de Formação *</Label>
                 <Controller
                   control={form.control}
@@ -395,6 +464,8 @@ export default function DoctorRegistration() {
                       max={new Date().getFullYear()}
                       value={field.value}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || new Date().getFullYear())}
+                      aria-invalid={fieldHasError("personalInfo.graduationYear")}
+                      className={cn(fieldHasError("personalInfo.graduationYear") && inputErrorClass)}
                     />
                   )}
                 />
@@ -405,12 +476,14 @@ export default function DoctorRegistration() {
                 )}
               </div>
 
-              <div>
+              <div data-field="personalInfo.city">
                 <Label htmlFor="city">Cidade onde mora *</Label>
                 <Input
                   id="city"
                   {...form.register("personalInfo.city")}
                   placeholder="Cidade atual"
+                  aria-invalid={fieldHasError("personalInfo.city")}
+                  className={cn(fieldHasError("personalInfo.city") && inputErrorClass)}
                 />
                 {form.formState.errors.personalInfo?.city && (
                   <p className="text-sm text-destructive mt-1">
@@ -419,7 +492,7 @@ export default function DoctorRegistration() {
                 )}
               </div>
 
-              <div>
+              <div data-field="personalInfo.phone">
                 <Label htmlFor="phone">Telefone *</Label>
                 <Controller
                   control={form.control}
@@ -430,6 +503,8 @@ export default function DoctorRegistration() {
                       placeholder="(00) 00000-0000"
                       value={field.value}
                       onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                      aria-invalid={fieldHasError("personalInfo.phone")}
+                      className={cn(fieldHasError("personalInfo.phone") && inputErrorClass)}
                     />
                   )}
                 />
@@ -440,13 +515,15 @@ export default function DoctorRegistration() {
                 )}
               </div>
 
-              <div>
+              <div data-field="personalInfo.email">
                 <Label htmlFor="email">E-mail *</Label>
                 <Input
                   id="email"
                   type="email"
                   {...form.register("personalInfo.email")}
                   placeholder="seu@email.com"
+                  aria-invalid={fieldHasError("personalInfo.email")}
+                  className={cn(fieldHasError("personalInfo.email") && inputErrorClass)}
                 />
                 {form.formState.errors.personalInfo?.email && (
                   <p className="text-sm text-destructive mt-1">
@@ -464,7 +541,7 @@ export default function DoctorRegistration() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
+              <div data-field="specialties.mainSpecialty">
                 <Label htmlFor="mainSpecialty">Especialidade Principal *</Label>
                 <Controller
                   control={form.control}
@@ -479,7 +556,10 @@ export default function DoctorRegistration() {
                         }
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger
+                        aria-invalid={fieldHasError("specialties.mainSpecialty")}
+                        className={cn(fieldHasError("specialties.mainSpecialty") && inputErrorClass)}
+                      >
                         <SelectValue placeholder="Selecione sua especialidade" />
                       </SelectTrigger>
                       <SelectContent>
@@ -498,7 +578,7 @@ export default function DoctorRegistration() {
                   </p>
                 )}
                 {form.watch("specialties.mainSpecialty") === OTHER_SPECIALTY && (
-                  <div className="mt-3">
+                  <div className="mt-3" data-field="specialties.customSpecialty">
                     <Label htmlFor="customSpecialty">Qual especialidade? *</Label>
                     <Controller
                       control={form.control}
@@ -507,6 +587,8 @@ export default function DoctorRegistration() {
                         <Input
                           id="customSpecialty"
                           placeholder="Descreva sua especialidade"
+                          aria-invalid={fieldHasError("specialties.customSpecialty")}
+                          className={cn(fieldHasError("specialties.customSpecialty") && inputErrorClass)}
                           {...field}
                         />
                       )}
@@ -520,7 +602,10 @@ export default function DoctorRegistration() {
                 )}
               </div>
 
-              <div>
+              <div
+                data-field="specialties.procedures"
+                className={cn(fieldHasError("specialties.procedures") && groupErrorClass)}
+              >
                 <Label className="mb-2 block">Procedimentos Dominados *</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {procedures.map((procedure) => (
@@ -555,7 +640,10 @@ export default function DoctorRegistration() {
                 )}
               </div>
 
-              <div>
+              <div
+                data-field="specialties.shiftTypes"
+                className={cn(fieldHasError("specialties.shiftTypes") && groupErrorClass)}
+              >
                 <Label className="mb-2 block">Tipo de Plantão Aceito *</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {shiftTypes.map((shiftType) => (
@@ -599,7 +687,10 @@ export default function DoctorRegistration() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
+              <div
+                data-field="availability.preferredPeriods"
+                className={cn(fieldHasError("availability.preferredPeriods") && groupErrorClass)}
+              >
                 <Label className="mb-2 block">Períodos Preferenciais *</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {periods.map((period) => (
@@ -634,7 +725,10 @@ export default function DoctorRegistration() {
                 )}
               </div>
 
-              <div>
+              <div
+                data-field="availability.preferredDays"
+                className={cn(fieldHasError("availability.preferredDays") && groupErrorClass)}
+              >
                 <Label className="mb-2 block">Dias Preferidos *</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   {weekDays.map((day) => (
@@ -719,7 +813,7 @@ export default function DoctorRegistration() {
                 </div>
               </div>
 
-              <div>
+              <div data-field="availability.maxDistanceKm">
                 <Label htmlFor="maxDistanceKm">Distância máxima para deslocamento (km) *</Label>
                 <Controller
                   control={form.control}
@@ -731,6 +825,8 @@ export default function DoctorRegistration() {
                       min={1}
                       value={field.value}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 50)}
+                      aria-invalid={fieldHasError("availability.maxDistanceKm")}
+                      className={cn(fieldHasError("availability.maxDistanceKm") && inputErrorClass)}
                     />
                   )}
                 />
@@ -750,7 +846,7 @@ export default function DoctorRegistration() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
+              <div data-field="location.state">
                 <Label htmlFor="state">Estado *</Label>
                 <Controller
                   control={form.control}
@@ -760,7 +856,10 @@ export default function DoctorRegistration() {
                       value={field.value}
                       onValueChange={field.onChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger
+                        aria-invalid={fieldHasError("location.state")}
+                        className={cn(fieldHasError("location.state") && inputErrorClass)}
+                      >
                         <SelectValue placeholder="Selecione o estado" />
                       </SelectTrigger>
                       <SelectContent>
@@ -780,14 +879,21 @@ export default function DoctorRegistration() {
                 )}
               </div>
 
-              <div>
+              <div
+                data-field="location.citiesOfWork"
+                className={cn(fieldHasError("location.citiesOfWork") && groupErrorClass)}
+              >
                 <Label>Cidades onde aceita atuar *</Label>
                 <div className="flex mt-2">
                   <Input
                     value={newCity}
                     onChange={(e) => setNewCity(e.target.value)}
                     placeholder="Digite o nome da cidade"
-                    className="mr-2"
+                    className={cn(
+                      "mr-2",
+                      fieldHasError("location.citiesOfWork") && inputErrorClass
+                    )}
+                    aria-invalid={fieldHasError("location.citiesOfWork")}
                   />
                   <Button
                     type="button"
