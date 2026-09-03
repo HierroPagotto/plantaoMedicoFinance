@@ -75,6 +75,8 @@ export const brazilianStates = [
   { value: "TO", label: "Tocantins" },
 ];
 
+export const OTHER_SPECIALTY = "Outra";
+
 export const medicalSpecialties = [
   "Clínica médica",
   "Pediatria",
@@ -94,7 +96,12 @@ export const medicalSpecialties = [
   "Ortopedia",
   "Psiquiatria",
   "Radiologia",
+  OTHER_SPECIALTY,
 ];
+
+export const knownMedicalSpecialties = medicalSpecialties.filter(
+  (s) => s !== OTHER_SPECIALTY
+);
 
 export const procedures = [
   "Intubação",
