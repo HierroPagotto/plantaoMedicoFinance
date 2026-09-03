@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import api from '@/lib/api';
 import { AppShell } from '../layout/AppShell';
 import { HospitalShell } from '../layout/HospitalShell';
+import {
+  DOCTOR_PROFILE_SETUP_PATH,
+  isDoctorProfileComplete,
+} from '@/lib/doctor-profile';
 
 type RoleGate = 'doctor' | 'hospital_staff' | 'any';
 
@@ -17,6 +21,7 @@ const ProtectedRoute = ({
   const [isValid, setIsValid] = useState(false);
   const [redirectTo, setRedirectTo] = useState('/login');
   const token = localStorage.getItem("token");
+  const location = useLocation();
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -33,23 +38,42 @@ const ProtectedRoute = ({
         if (role === 'doctor' && userRole === 'hospital_staff') {
           setRedirectTo('/hospital');
           setIsValid(false);
-        } else if (role === 'hospital_staff' && userRole !== 'hospital_staff') {
+          return;
+        }
+
+        if (role === 'hospital_staff' && userRole !== 'hospital_staff') {
           setRedirectTo('/dashboard');
           setIsValid(false);
-        } else {
-          setIsValid(true);
+          return;
         }
+
+        const isDoctorSide =
+          role === 'doctor' &&
+          (userRole === 'doctor' || userRole === 'platform_admin');
+
+        if (
+          isDoctorSide &&
+          !isDoctorProfileComplete(response) &&
+          location.pathname !== DOCTOR_PROFILE_SETUP_PATH
+        ) {
+          setRedirectTo(DOCTOR_PROFILE_SETUP_PATH);
+          setIsValid(false);
+          return;
+        }
+
+        setIsValid(true);
       } catch (error) {
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         setRedirectTo('/login');
+        setIsValid(false);
       } finally {
         setIsLoading(false);
       }
     };
 
     verifyAuth();
-  }, [token, role]);
+  }, [token, role, location.pathname]);
 
   if (isLoading) {
     if (role === 'hospital_staff') {

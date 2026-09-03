@@ -14,7 +14,6 @@ import api from '@/lib/api';
 
 const Dashboard = () => {
   const [shifts, setShifts] = useState<any[]>([]);
-  const [hasProfile, setHasProfile] = useState(false);
   const [stats, setStats] = useState({
     monthly_earnings: 0,
     scheduled_shifts: 0,
@@ -39,9 +38,6 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const doctorProfile = localStorage.getItem('userData');
-    setHasProfile(!!doctorProfile);
-
     const fetchShifts = async () => {
       try {
         const data = await api.getShifts();
@@ -96,38 +92,17 @@ const Dashboard = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <div className="flex gap-2">
-          {hasProfile ? (
-            <Button asChild variant="outline">
-              <Link to="/doctor-profile" className="flex items-center gap-2">
-                <User size={16} />
-                Ver Perfil
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild variant="outline">
-              <Link to="/doctor-registration" className="flex items-center gap-2">
-                <User size={16} />
-                Cadastrar Perfil
-              </Link>
-            </Button>
-          )}
+          <Button asChild variant="outline">
+            <Link to="/doctor-profile" className="flex items-center gap-2">
+              <User size={16} />
+              Ver Perfil
+            </Link>
+          </Button>
           <Button asChild>
             <Link to="/shifts/new">Novo plantão</Link>
           </Button>
         </div>
       </div>
-
-      {!hasProfile && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-          <h3 className="font-medium text-amber-800">Perfil médico incompleto</h3>
-          <p className="text-amber-700 mt-1">
-            Complete seu perfil médico para aumentar suas chances de encontrar plantões compatíveis.
-          </p>
-          <Button asChild variant="outline" className="mt-2 bg-amber-100 border-amber-300 hover:bg-amber-200">
-            <Link to="/doctor-registration">Completar Perfil</Link>
-          </Button>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard
