@@ -35,7 +35,7 @@ import {
   Calendar,
   Award,
   Briefcase,
-  FileText,
+  CheckCircle,
   Save,
   Plus,
 } from "lucide-react";
