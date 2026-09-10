@@ -41,8 +41,7 @@ const schema = z
     required_profession: z.enum([
       'doctor',
       'nurse',
-      'nursing_technician',
-      'orthopedic_technician',
+      'technician',
     ]),
     specialty: z.string().min(1, 'Informe a especialidade'),
     value: z.coerce.number().positive('Valor deve ser maior que zero'),

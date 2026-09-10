@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { knownMedicalSpecialties, OTHER_SPECIALTY } from "@/types/doctor"
-import { specialtiesFor, type Profession } from "@/lib/professions"
+import { specialtiesFor, normalizeProfession, type Profession } from "@/lib/professions"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -156,7 +156,7 @@ function resolveSpecialtyFromApi(
 export function transformApiToForm(
   data: DoctorApiProfile
 ): DoctorRegistrationFormValues {
-  const profession = (data.profession || "doctor") as Profession
+  const profession = normalizeProfession(data.profession)
   const specialtiesList: string[] = Array.isArray(data.specialties)
     ? data.specialties.filter(Boolean)
     : []
@@ -254,8 +254,10 @@ export function transformFormToApi(
     values.councilType ||
     (profession === "doctor"
       ? "CRM"
-      : profession === "orthopedic_technician"
-        ? "CREFITO"
+      : profession === "technician"
+        ? selected.some((s) => /ortoped|imobiliza/i.test(s))
+          ? "CREFITO"
+          : "COREN"
         : "COREN")
 
   return {

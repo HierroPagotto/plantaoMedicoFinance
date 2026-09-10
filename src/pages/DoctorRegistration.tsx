@@ -47,6 +47,7 @@ import {
   councilLabel,
   getProfessionMeta,
   specialtiesFor,
+  suggestCouncilForSpecialty,
   PRACTICE_AREAS,
   type Profession,
 } from "@/lib/professions";
@@ -108,8 +109,7 @@ const formSchema = z.object({
   profession: z.enum([
     "doctor",
     "nurse",
-    "nursing_technician",
-    "orthopedic_technician",
+    "technician",
   ]),
   personalInfo: z.object({
     fullName: z.string().min(3, { message: "Nome é obrigatório" }),
@@ -243,7 +243,11 @@ export default function DoctorRegistration() {
   });
 
   const profession = (form.watch("profession") || "doctor") as Profession;
-  const councilType = councilLabel(profession);
+  const selectedSpecialtiesWatch = form.watch("specialties.selectedSpecialties") || [];
+  const councilType =
+    profession === "technician"
+      ? suggestCouncilForSpecialty(profession, selectedSpecialtiesWatch[0])
+      : councilLabel(profession);
   const specialtyOptions = useMemo(() => specialtiesFor(profession), [profession]);
   const professionLabel = getProfessionMeta(profession).label;
   const watchCitiesState = form.watch("location.state");

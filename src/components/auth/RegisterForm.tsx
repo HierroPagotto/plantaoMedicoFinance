@@ -27,8 +27,8 @@ import { OTHER_SPECIALTY } from '@/types/doctor';
 import { DOCTOR_PROFILE_SETUP_PATH } from '@/lib/doctor-profile';
 import {
   PROFESSIONS,
-  councilLabel,
   specialtiesFor,
+  suggestCouncilForSpecialty,
   type Profession,
 } from '@/lib/professions';
 
@@ -37,12 +37,7 @@ const formSchema = z
     name: z.string().min(3, { message: 'Nome deve ter no mínimo 3 caracteres' }),
     email: z.string().email({ message: 'Email inválido' }),
     password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }),
-    profession: z.enum([
-      'doctor',
-      'nurse',
-      'nursing_technician',
-      'orthopedic_technician',
-    ]),
+    profession: z.enum(['doctor', 'nurse', 'technician']),
     specialty: z.string().min(1, { message: 'Selecione uma especialidade' }),
     customSpecialty: z.string().optional(),
   })
@@ -95,7 +90,7 @@ export function RegisterForm() {
         email: data.email,
         password: data.password,
         profession: data.profession,
-        council_type: councilLabel(data.profession),
+        council_type: suggestCouncilForSpecialty(data.profession, mainSpecialty),
         main_specialty: mainSpecialty,
         specialties: [mainSpecialty],
       });
