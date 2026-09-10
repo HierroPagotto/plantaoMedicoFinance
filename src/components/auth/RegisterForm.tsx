@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,15 +21,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
-import { medicalSpecialties, OTHER_SPECIALTY } from '@/types/doctor';
+import { OTHER_SPECIALTY } from '@/types/doctor';
 import { DOCTOR_PROFILE_SETUP_PATH } from '@/lib/doctor-profile';
+import {
+  PROFESSIONS,
+  councilLabel,
+  specialtiesFor,
+  type Profession,
+} from '@/lib/professions';
 
 const formSchema = z
   .object({
     name: z.string().min(3, { message: 'Nome deve ter no mínimo 3 caracteres' }),
     email: z.string().email({ message: 'Email inválido' }),
     password: z.string().min(6, { message: 'Senha deve ter no mínimo 6 caracteres' }),
+    profession: z.enum([
+      'doctor',
+      'nurse',
+      'nursing_technician',
+      'orthopedic_technician',
+    ]),
     specialty: z.string().min(1, { message: 'Selecione uma especialidade' }),
     customSpecialty: z.string().optional(),
   })
@@ -59,12 +72,15 @@ export function RegisterForm() {
       name: '',
       email: '',
       password: '',
+      profession: 'doctor',
       specialty: '',
       customSpecialty: '',
     },
   });
 
   const selectedSpecialty = form.watch('specialty');
+  const profession = form.watch('profession') as Profession;
+  const specialtyOptions = useMemo(() => specialtiesFor(profession), [profession]);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -78,12 +94,15 @@ export function RegisterForm() {
         name: data.name,
         email: data.email,
         password: data.password,
+        profession: data.profession,
+        council_type: councilLabel(data.profession),
         main_specialty: mainSpecialty,
+        specialties: [mainSpecialty],
       });
 
       toast({
         title: 'Conta criada com sucesso!',
-        description: 'Complete seu perfil médico para continuar...',
+        description: 'Complete seu perfil profissional para continuar...',
       });
 
       await api.login(data.email, data.password);
@@ -91,12 +110,11 @@ export function RegisterForm() {
       const me = await api.getAuthMe();
       localStorage.setItem('userData', JSON.stringify(me));
       navigate(DOCTOR_PROFILE_SETUP_PATH);
-    } catch (error: any) {
-      let errorMessage = 'Erro ao criar conta';
-
-      if (error.response) {
-        errorMessage = error.response.data.message || errorMessage;
-      }
+    } catch (error: unknown) {
+      const errorMessage = isAxiosError(error)
+        ? (error.response?.data as { message?: string } | undefined)?.message ||
+          'Erro ao criar conta'
+        : 'Erro ao criar conta';
 
       toast({
         variant: 'destructive',
@@ -118,8 +136,40 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Nome completo</FormLabel>
               <FormControl>
-                <Input placeholder="Dr. João Silva" {...field} />
+                <Input placeholder="Seu nome" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="profession"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Profissão</FormLabel>
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  form.setValue('specialty', '');
+                  form.setValue('customSpecialty', '');
+                }}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione sua profissão" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {PROFESSIONS.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -158,7 +208,7 @@ export function RegisterForm() {
           name="specialty"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Especialidade principal</FormLabel>
+              <FormLabel>Especialidade / área principal</FormLabel>
               <Select
                 onValueChange={(value) => {
                   field.onChange(value);
@@ -170,11 +220,11 @@ export function RegisterForm() {
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione sua especialidade" />
+                    <SelectValue placeholder="Selecione uma opção" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {medicalSpecialties.map((specialty) => (
+                  {specialtyOptions.map((specialty) => (
                     <SelectItem key={specialty} value={specialty}>
                       {specialty}
                     </SelectItem>

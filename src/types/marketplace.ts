@@ -19,6 +19,7 @@ export type ShiftOpportunity = {
   start_time: string;
   end_time: string;
   specialty: string;
+  required_profession?: string;
   value: number;
   payment_date?: string | null;
   requires_acls?: boolean;
@@ -51,9 +52,15 @@ export type OpportunityApplication = {
   doctor?: {
     id: number;
     name: string;
+    profession?: string;
+    council_type?: string;
+    council_number?: string;
+    council_state?: string;
     crm?: string;
     crm_state?: string;
     main_specialty?: string;
+    specialties?: string[];
+    practice_areas?: string[];
     city?: string;
     state?: string;
     photo_url?: string;

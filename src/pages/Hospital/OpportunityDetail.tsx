@@ -215,11 +215,22 @@ const HospitalOpportunityDetailPage = () => {
                       </Badge>
                     </div>
                     <p className="text-sm text-slate-600">
-                      {app.doctor?.main_specialty || '—'}
-                      {app.doctor?.crm
-                        ? ` · CRM ${app.doctor.crm}${app.doctor.crm_state ? `/${app.doctor.crm_state}` : ''
-                        }`
-                        : ''}
+                      {(app.doctor?.specialties?.length
+                        ? app.doctor.specialties.join(', ')
+                        : app.doctor?.main_specialty) || '—'}
+                      {(() => {
+                        const type =
+                          app.doctor?.council_type ||
+                          (app.doctor?.crm ? 'CRM' : null);
+                        const number =
+                          app.doctor?.council_number || app.doctor?.crm;
+                        const state =
+                          app.doctor?.council_state || app.doctor?.crm_state;
+                        if (!number) return '';
+                        return ` · ${type || 'Conselho'} ${number}${
+                          state ? `/${state}` : ''
+                        }`;
+                      })()}
                       {app.doctor?.city ? ` · ${app.doctor.city}` : ''}
                     </p>
                     {(app.doctor?.acls ||

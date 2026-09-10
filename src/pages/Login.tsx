@@ -26,7 +26,7 @@ const Login = () => {
                   <p className="text-gray-600 text-sm">
                     Não tem uma conta?{" "}
                     <Button variant="link" className="p-0" asChild>
-                      <Link to="/register" className="text-blue-600 hover:text-blue-700">Cadastre-se como médico</Link>
+                      <Link to="/register" className="text-blue-600 hover:text-blue-700">Cadastre-se como profissional</Link>
                     </Button>
                   </p>
                   <p className="text-gray-600 text-sm">

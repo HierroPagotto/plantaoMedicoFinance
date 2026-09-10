@@ -17,12 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import {
   brazilianStates,
-  medicalSpecialties,
   OTHER_SPECIALTY,
   procedures,
   shiftTypes,
@@ -42,10 +41,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { api } from "@/lib/api";
 import { cn, transformApiToForm, transformFormToApi } from "@/lib/utils";
+import type { DoctorRegistrationFormValues } from "@/lib/utils";
 import { isDoctorProfileComplete } from "@/lib/doctor-profile";
+import {
+  councilLabel,
+  getProfessionMeta,
+  specialtiesFor,
+  PRACTICE_AREAS,
+  type Profession,
+} from "@/lib/professions";
 
 const phoneRegex = /^\(\d{2}\) \d{5}-\d{4}$/;
-const crmRegex = /^\d{4,10}$/;
+const councilRegex = /^\d{4,10}$/;
 
 const PROFILE_FIELD_ORDER = [
   "personalInfo.fullName",
@@ -55,8 +62,9 @@ const PROFILE_FIELD_ORDER = [
   "personalInfo.city",
   "personalInfo.phone",
   "personalInfo.email",
-  "specialties.mainSpecialty",
+  "specialties.selectedSpecialties",
   "specialties.customSpecialty",
+  "specialties.practiceAreas",
   "specialties.procedures",
   "specialties.shiftTypes",
   "availability.preferredPeriods",
@@ -97,11 +105,17 @@ const groupErrorClass =
   "rounded-md border border-destructive bg-destructive/5 p-3";
 
 const formSchema = z.object({
+  profession: z.enum([
+    "doctor",
+    "nurse",
+    "nursing_technician",
+    "orthopedic_technician",
+  ]),
   personalInfo: z.object({
     fullName: z.string().min(3, { message: "Nome é obrigatório" }),
     photoUrl: z.string().optional(),
-    crm: z.string().regex(crmRegex, { message: "CRM inválido" }),
-    crmState: z.string().min(2, { message: "Selecione o estado do CRM" }),
+    crm: z.string().regex(councilRegex, { message: "Número de conselho inválido" }),
+    crmState: z.string().min(2, { message: "Selecione o estado do conselho" }),
     graduationYear: z.number().int().min(1950).max(new Date().getFullYear()),
     city: z.string().min(2, { message: "Cidade é obrigatória" }),
     phone: z.string().regex(phoneRegex, { message: "Telefone inválido" }),
@@ -109,13 +123,19 @@ const formSchema = z.object({
   }),
   specialties: z
     .object({
-      mainSpecialty: z.string().min(1, { message: "Especialidade é obrigatória" }),
+      mainSpecialty: z.string().optional(),
       customSpecialty: z.string().optional(),
+      selectedSpecialties: z
+        .array(z.string())
+        .min(1, { message: "Selecione pelo menos uma especialidade" }),
+      practiceAreas: z
+        .array(z.string())
+        .min(1, { message: "Selecione pelo menos uma área de atuação" }),
       procedures: z.array(z.string()).min(1, { message: "Selecione pelo menos um procedimento" }),
       shiftTypes: z.array(z.string()).min(1, { message: "Selecione pelo menos um tipo de plantão" }),
     })
     .superRefine((data, ctx) => {
-      if (data.mainSpecialty === OTHER_SPECIALTY) {
+      if (data.selectedSpecialties.includes(OTHER_SPECIALTY)) {
         const custom = (data.customSpecialty || "").trim();
         if (custom.length < 3) {
           ctx.addIssue({
@@ -172,6 +192,7 @@ export default function DoctorRegistration() {
     shouldFocusError: true,
     criteriaMode: "all",
     defaultValues: {
+      profession: "doctor",
       personalInfo: {
         fullName: "",
         photoUrl: "",
@@ -185,6 +206,8 @@ export default function DoctorRegistration() {
       specialties: {
         mainSpecialty: "",
         customSpecialty: "",
+        selectedSpecialties: [],
+        practiceAreas: [],
         procedures: [],
         shiftTypes: [],
       },
@@ -219,6 +242,10 @@ export default function DoctorRegistration() {
     },
   });
 
+  const profession = (form.watch("profession") || "doctor") as Profession;
+  const councilType = councilLabel(profession);
+  const specialtyOptions = useMemo(() => specialtiesFor(profession), [profession]);
+  const professionLabel = getProfessionMeta(profession).label;
   const watchCitiesState = form.watch("location.state");
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,19 +339,20 @@ export default function DoctorRegistration() {
 
       const doctorData = {
         ...data,
+        councilType,
         personalInfo: {
           ...data.personalInfo,
-          photoUrl
-        }
-      };
+          photoUrl: photoUrl || "",
+        },
+      } as DoctorRegistrationFormValues;
 
-      await api.updateMyData(transformFormToApi(doctorData));
+      await api.updateMyData(transformFormToApi(doctorData) as Record<string, unknown>);
 
       const me = await api.getAuthMe();
       localStorage.setItem("userData", JSON.stringify(me));
       setNeedsSetup(!isDoctorProfileComplete(me));
 
-      toast.success("Perfil médico atualizado com sucesso!");
+      toast.success("Perfil atualizado com sucesso!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -337,7 +365,7 @@ export default function DoctorRegistration() {
   return (
     <AppShell>
       <div className="container mx-auto py-6 overflow-hidden">
-        <h1 className="text-2xl font-bold mb-6">Cadastro de Médico Plantonista</h1>
+        <h1 className="text-2xl font-bold mb-6">Cadastro de Profissional Plantonista</h1>
 
         {needsSetup && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
@@ -402,11 +430,11 @@ export default function DoctorRegistration() {
 
               <div className="flex gap-4">
                 <div className="flex-1" data-field="personalInfo.crm">
-                  <Label htmlFor="crm">CRM *</Label>
+                  <Label htmlFor="crm">{councilType} *</Label>
                   <Input
                     id="crm"
                     {...form.register("personalInfo.crm")}
-                    placeholder="Número do CRM"
+                    placeholder={`Número do ${councilType}`}
                     aria-invalid={fieldHasError("personalInfo.crm")}
                     className={cn(fieldHasError("personalInfo.crm") && inputErrorClass)}
                   />
@@ -418,7 +446,7 @@ export default function DoctorRegistration() {
                 </div>
 
                 <div className="w-1/3" data-field="personalInfo.crmState">
-                  <Label htmlFor="crmState">Estado *</Label>
+                  <Label htmlFor="crmState">UF do {councilType} *</Label>
                   <Controller
                     control={form.control}
                     name="personalInfo.crmState"
@@ -541,43 +569,50 @@ export default function DoctorRegistration() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div data-field="specialties.mainSpecialty">
-                <Label htmlFor="mainSpecialty">Especialidade Principal *</Label>
-                <Controller
-                  control={form.control}
-                  name="specialties.mainSpecialty"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        if (value !== OTHER_SPECIALTY) {
-                          form.setValue("specialties.customSpecialty", "");
-                        }
-                      }}
-                    >
-                      <SelectTrigger
-                        aria-invalid={fieldHasError("specialties.mainSpecialty")}
-                        className={cn(fieldHasError("specialties.mainSpecialty") && inputErrorClass)}
-                      >
-                        <SelectValue placeholder="Selecione sua especialidade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {medicalSpecialties.map(specialty => (
-                          <SelectItem key={specialty} value={specialty}>
-                            {specialty}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.specialties?.mainSpecialty && (
+              <p className="text-sm text-muted-foreground">
+                Profissão: <strong>{professionLabel}</strong>
+              </p>
+
+              <div
+                data-field="specialties.selectedSpecialties"
+                className={cn(fieldHasError("specialties.selectedSpecialties") && groupErrorClass)}
+              >
+                <Label className="mb-2 block">Especialidades *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {specialtyOptions.map((specialty) => (
+                    <div key={specialty} className="flex items-center space-x-2">
+                      <Controller
+                        control={form.control}
+                        name="specialties.selectedSpecialties"
+                        render={({ field }) => (
+                          <Checkbox
+                            id={`specialty-${specialty}`}
+                            checked={field.value.includes(specialty)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                field.onChange([...field.value, specialty]);
+                              } else {
+                                field.onChange(field.value.filter((val) => val !== specialty));
+                                if (specialty === OTHER_SPECIALTY) {
+                                  form.setValue("specialties.customSpecialty", "");
+                                }
+                              }
+                            }}
+                          />
+                        )}
+                      />
+                      <Label htmlFor={`specialty-${specialty}`} className="text-sm">
+                        {specialty}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {form.formState.errors.specialties?.selectedSpecialties && (
                   <p className="text-sm text-destructive mt-1">
-                    {form.formState.errors.specialties.mainSpecialty.message}
+                    {form.formState.errors.specialties.selectedSpecialties.message}
                   </p>
                 )}
-                {form.watch("specialties.mainSpecialty") === OTHER_SPECIALTY && (
+                {form.watch("specialties.selectedSpecialties")?.includes(OTHER_SPECIALTY) && (
                   <div className="mt-3" data-field="specialties.customSpecialty">
                     <Label htmlFor="customSpecialty">Qual especialidade? *</Label>
                     <Controller
@@ -599,6 +634,44 @@ export default function DoctorRegistration() {
                       </p>
                     )}
                   </div>
+                )}
+              </div>
+
+              <div
+                data-field="specialties.practiceAreas"
+                className={cn(fieldHasError("specialties.practiceAreas") && groupErrorClass)}
+              >
+                <Label className="mb-2 block">Áreas de atuação *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {PRACTICE_AREAS.map((area) => (
+                    <div key={area} className="flex items-center space-x-2">
+                      <Controller
+                        control={form.control}
+                        name="specialties.practiceAreas"
+                        render={({ field }) => (
+                          <Checkbox
+                            id={`area-${area}`}
+                            checked={field.value.includes(area)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                field.onChange([...field.value, area]);
+                              } else {
+                                field.onChange(field.value.filter((val) => val !== area));
+                              }
+                            }}
+                          />
+                        )}
+                      />
+                      <Label htmlFor={`area-${area}`} className="text-sm">
+                        {area}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {form.formState.errors.specialties?.practiceAreas && (
+                  <p className="text-sm text-destructive mt-1">
+                    {form.formState.errors.specialties.practiceAreas.message}
+                  </p>
                 )}
               </div>
 

@@ -27,29 +27,23 @@ import {
 import { ArrowLeft } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import { Checkbox } from '@/components/ui/checkbox';
-
-const specialties = [
-  'Cardiologia',
-  'Clínica Médica',
-  'Dermatologia',
-  'Endocrinologia',
-  'Gastroenterologia',
-  'Geriatria',
-  'Ginecologia',
-  'Neurologia',
-  'Oftalmologia',
-  'Ortopedia',
-  'Pediatria',
-  'Psiquiatria',
-  'Radiologia',
-  'UTI',
-];
+import {
+  PROFESSIONS,
+  specialtiesFor,
+  type Profession,
+} from '@/lib/professions';
 
 const schema = z
   .object({
     date: z.string().min(1, 'Informe a data'),
     start_time: z.string().min(1, 'Informe o horário de início'),
     end_time: z.string().min(1, 'Informe o horário de término'),
+    required_profession: z.enum([
+      'doctor',
+      'nurse',
+      'nursing_technician',
+      'orthopedic_technician',
+    ]),
     specialty: z.string().min(1, 'Informe a especialidade'),
     value: z.coerce.number().positive('Valor deve ser maior que zero'),
     payment_date: z.string().min(1, 'Informe a data prevista de pagamento'),
@@ -88,7 +82,8 @@ const HospitalNewOpportunityPage = () => {
       date: '',
       start_time: '19:00',
       end_time: '07:00',
-      specialty: 'Clínica Médica',
+      required_profession: 'doctor',
+      specialty: 'Clínica médica',
       value: 1400,
       payment_date: '',
       city: readHospitalCity(),
@@ -101,6 +96,9 @@ const HospitalNewOpportunityPage = () => {
     },
   });
 
+  const requiredProfession = form.watch('required_profession') as Profession;
+  const specialtyOptions = specialtiesFor(requiredProfession).filter((s) => s !== 'Outra');
+
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
@@ -108,6 +106,7 @@ const HospitalNewOpportunityPage = () => {
         date: data.date,
         start_time: data.start_time.length === 5 ? `${data.start_time}:00` : data.start_time,
         end_time: data.end_time.length === 5 ? `${data.end_time}:00` : data.end_time,
+        required_profession: data.required_profession,
         specialty: data.specialty,
         value: data.value,
         payment_date: data.payment_date,
@@ -121,7 +120,7 @@ const HospitalNewOpportunityPage = () => {
       });
       toast({
         title: 'Vaga publicada',
-        description: 'Médicos já podem visualizar no marketplace.',
+        description: 'Profissionais elegíveis já podem visualizar no marketplace.',
       });
       navigate(`/hospital/opportunities/${result.opportunity.id}`);
     } catch (err: unknown) {
@@ -202,6 +201,39 @@ const HospitalNewOpportunityPage = () => {
             </div>
             <FormField
               control={form.control}
+              name="required_profession"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Profissão da vaga</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      const next = specialtiesFor(value as Profession).filter(
+                        (s) => s !== 'Outra'
+                      );
+                      form.setValue('specialty', next[0] || '');
+                    }}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Profissão" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {PROFESSIONS.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="specialty"
               render={({ field }) => (
                 <FormItem>
@@ -213,7 +245,7 @@ const HospitalNewOpportunityPage = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {specialties.map((item) => (
+                      {specialtyOptions.map((item) => (
                         <SelectItem key={item} value={item}>
                           {item}
                         </SelectItem>

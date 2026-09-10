@@ -19,6 +19,23 @@ export type LoginResponse = {
     message?: string;
 };
 
+export type CreateHospitalOpportunityPayload = {
+    date: string;
+    start_time: string;
+    end_time: string;
+    specialty: string;
+    required_profession: string;
+    value: number;
+    payment_date: string;
+    city?: string;
+    slots_total?: number;
+    notes?: string;
+    requires_acls?: boolean;
+    requires_bls?: boolean;
+    requires_atls?: boolean;
+    requires_pals?: boolean;
+};
+
 class ApiClient {
     private api: AxiosInstance;
     private token: string | null = null;
@@ -354,21 +371,7 @@ class ApiClient {
         return response.data;
     }
 
-    async createHospitalOpportunity(payload: {
-        date: string;
-        start_time: string;
-        end_time: string;
-        specialty: string;
-        value: number;
-        payment_date: string;
-        city?: string;
-        slots_total?: number;
-        notes?: string;
-        requires_acls?: boolean;
-        requires_bls?: boolean;
-        requires_atls?: boolean;
-        requires_pals?: boolean;
-    }) {
+    async createHospitalOpportunity(payload: CreateHospitalOpportunityPayload) {
         const response = await this.api.post('/marketplace/opportunities', payload);
         return response.data;
     }
@@ -380,6 +383,7 @@ class ApiClient {
             start_time: string;
             end_time: string;
             specialty: string;
+            required_profession: string;
             value: number;
             payment_date: string;
             city: string;

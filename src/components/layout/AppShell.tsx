@@ -48,7 +48,10 @@ export const AppShell = ({ children }: AppShellProps) => {
         const parsed = JSON.parse(storedUser);
         setUser({
           name: parsed.name || 'Desconhecido(a)',
-          specialty: parsed.main_specialty || '...',
+          specialty:
+            (Array.isArray(parsed.specialties) && parsed.specialties.length
+              ? parsed.specialties.join(', ')
+              : parsed.main_specialty) || '...',
           photo_url: parsed.photo_url || undefined,
           is_admin: parsed.is_admin || false
         });
@@ -77,7 +80,7 @@ export const AppShell = ({ children }: AppShellProps) => {
     { name: 'Financeiro', href: '/finance', icon: DollarSign },
     { name: 'Histórico', href: '/history', icon: History },
     { name: 'Configurações', href: '/settings', icon: Settings },
-    { name: 'Perfil Médico', href: '/doctor-profile', icon: User },
+    { name: 'Perfil', href: '/doctor-profile', icon: User },
     ...(user.is_admin ? [
       { name: 'Admin: Usuários', href: '/admin/users', icon: User },
       { name: 'Admin: Hospitais', href: '/admin/hospitals', icon: Home },
