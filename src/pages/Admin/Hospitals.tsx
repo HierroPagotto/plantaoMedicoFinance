@@ -7,6 +7,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@
 import { Hospital as HospitalIcon, MapPin, Calendar } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 import { isAxiosError } from 'axios';
 
 type AdminHospital = {
@@ -55,8 +56,12 @@ export default function AdminHospitals() {
     try {
       await api.deleteAdminHospital(String(hospitalId));
       setHospitals(hospitals.filter((h) => h.id !== hospitalId));
-    } catch {
-      alert('Erro ao deletar hospital.');
+      sonnerToast.success('Hospital deletado com sucesso');
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      sonnerToast.error(message || 'Erro ao deletar hospital.');
     }
   };
 
@@ -96,7 +101,7 @@ export default function AdminHospitals() {
       !newHospital.address.trim() ||
       newHospital.address.trim() === 'Endereço não especificado'
     ) {
-      alert('Preencha todos os campos corretamente.');
+      sonnerToast.error('Preencha todos os campos corretamente.');
       return;
     }
     setIsCreating(true);
@@ -109,8 +114,12 @@ export default function AdminHospitals() {
       });
       setHospitals([...hospitals, created]);
       setNewHospital({ name: '', address: '' });
-    } catch {
-      alert('Erro ao criar hospital.');
+      sonnerToast.success('Hospital criado com sucesso');
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      sonnerToast.error(message || 'Erro ao criar hospital.');
     } finally {
       setIsCreating(false);
     }

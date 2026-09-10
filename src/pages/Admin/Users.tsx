@@ -5,19 +5,43 @@ import api from '@/lib/api';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, User, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
+import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
+
+type AdminUser = {
+  id: number;
+  name: string;
+  email: string;
+  photo_url?: string | null;
+  is_admin?: boolean;
+  crm?: string | null;
+  crm_state?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  state?: string | null;
+  graduation_year?: number | string | null;
+  main_specialty?: string | null;
+  procedures?: string | null;
+  provides_invoice?: boolean;
+};
+
+type AdminUsersResponse = {
+  users?: AdminUser[];
+  count?: number;
+};
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     api.getAdminUsers()
-      .then(data => {
+      .then((data: AdminUsersResponse) => {
         setUsers(data.users || []);
         setLoading(false);
       })
@@ -27,24 +51,23 @@ export default function AdminUsers() {
       });
   }, []);
 
-  const handleDelete = async (userId: string) => {
+  const handleDelete = async (userId: number) => {
     if (!window.confirm('Tem certeza que deseja deletar este usuário?')) return;
     try {
-      await api.deleteAdminUser(Number(userId));
-      setUsers(users.filter((u: any) => u.id !== userId));
-    } catch {
-      alert('Erro ao deletar usuário.');
+      await api.deleteAdminUser(userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      toast.success('Usuário deletado com sucesso');
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      toast.error(message || 'Erro ao deletar usuário.');
     }
   };
 
-  const openDrawer = (user: any) => {
+  const openDrawer = (user: AdminUser) => {
     setSelectedUser(user);
     setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setSelectedUser(null);
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -67,7 +90,7 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user: any, idx: number) => (
+              {users.map((user) => (
                 <tr key={user.id} className="transition-colors hover:bg-muted/60">
                   <td className="px-4 py-2 align-middle">
                     <div className="flex items-center gap-2">
@@ -75,7 +98,7 @@ export default function AdminUsers() {
                         {user.photo_url ? (
                           <AvatarImage src={user.photo_url} alt={user.name} />
                         ) : (
-                          <AvatarFallback>{user.name?.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                          <AvatarFallback>{user.name?.split(' ').map((n) => n[0]).join('')}</AvatarFallback>
                         )}
                       </Avatar>
                       <span>{user.name}</span>
@@ -113,7 +136,7 @@ export default function AdminUsers() {
                   {selectedUser.photo_url ? (
                     <AvatarImage src={selectedUser.photo_url} alt={selectedUser.name} />
                   ) : (
-                    <AvatarFallback>{selectedUser.name?.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                    <AvatarFallback>{selectedUser.name?.split(' ').map((n) => n[0]).join('')}</AvatarFallback>
                   )}
                 </Avatar>
                 <div>
@@ -169,4 +192,4 @@ export default function AdminUsers() {
       </Drawer>
     </AppShell>
   );
-} 
+}

@@ -265,7 +265,7 @@ class ApiClient {
         return response.data;
     }
 
-    async deleteAdminUser(userId: string) {
+    async deleteAdminUser(userId: number | string) {
         const response = await this.api.delete(`/admin/users/${userId}`);
         return response.data;
     }

@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
 import { Badge } from '@/components/ui/badge';
@@ -174,8 +176,12 @@ const Shifts = () => {
       await api.bulkDeleteShifts(idsNum);
       setShifts(prev => prev.filter(s => !selectedIds.includes(s.id)));
       setSelectedIds([]);
-    } catch {
-      alert('Erro ao deletar plantões.');
+      toast.success('Plantões deletados com sucesso');
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      toast.error(message || 'Erro ao deletar plantões.');
     } finally {
       setDeleting(false);
     }
