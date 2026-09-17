@@ -72,6 +72,9 @@ const Dashboard = () => {
   const [goal, setGoal] = useState<{ value: number; custom: boolean } | null>(null);
   const [selectedShift, setSelectedShift] = useState<ShiftProps | null>(null);
   const [editShift, setEditShift] = useState<ShiftProps | null>(null);
+  const [personalMonthlyExpenses, setPersonalMonthlyExpenses] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
   const navigate = useNavigate();
 
   const calendarShifts = useMemo(
@@ -113,6 +116,26 @@ const Dashboard = () => {
     };
 
     fetchShifts();
+  }, []);
+
+  useEffect(() => {
+    const fetchPersonalExpenses = async () => {
+      const chartYear = new Date().getFullYear();
+      try {
+        const data = await api.listExpenses({ year: chartYear, source: 'personal' });
+        const monthly = Array(12).fill(0) as number[];
+        for (const expense of data.expenses || []) {
+          const d = new Date(`${expense.expense_date}T12:00:00`);
+          if (!Number.isNaN(d.getTime()) && d.getFullYear() === chartYear) {
+            monthly[d.getMonth()] += Number(expense.amount) || 0;
+          }
+        }
+        setPersonalMonthlyExpenses(monthly);
+      } catch {
+        setPersonalMonthlyExpenses(Array(12).fill(0));
+      }
+    };
+    fetchPersonalExpenses();
   }, []);
 
   useEffect(() => {
@@ -308,7 +331,8 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div className="md:col-span-3">
-          <FinancialChart shifts={shifts
+          <FinancialChart
+            shifts={shifts
             .map((shift) => ({
               paymentDate: new Date(shift.payment_date || ''),
               date: new Date(shift.date),
@@ -319,8 +343,9 @@ const Dashboard = () => {
             .filter((shift) =>
               shift.date && !isNaN(shift.date.getTime()) &&
               shift.date.getFullYear() === new Date().getFullYear()
-            )
-          } />
+            )}
+            extraMonthlyExpenses={personalMonthlyExpenses}
+          />
         </div>
         <div className="md:col-span-2">
           <NextPaymentCard shifts={shifts} />

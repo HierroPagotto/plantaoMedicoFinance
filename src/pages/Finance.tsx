@@ -51,6 +51,9 @@ const Finance = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [personalMonthlyExpenses, setPersonalMonthlyExpenses] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
 
   useEffect(() => {
     const fetchShifts = async () => {
@@ -69,6 +72,25 @@ const Finance = () => {
       }
     };
     fetchShifts();
+
+    const chartYear = new Date().getFullYear();
+    const fetchPersonalExpenses = async () => {
+      try {
+        const data = await api.listExpenses({ year: chartYear, source: 'personal' });
+        const monthly = Array(12).fill(0) as number[];
+        for (const expense of data.expenses || []) {
+          const d = new Date(`${expense.expense_date}T12:00:00`);
+          if (!Number.isNaN(d.getTime()) && d.getFullYear() === chartYear) {
+            monthly[d.getMonth()] += Number(expense.amount) || 0;
+          }
+        }
+        setPersonalMonthlyExpenses(monthly);
+      } catch {
+        setPersonalMonthlyExpenses(Array(12).fill(0));
+      }
+    };
+    fetchPersonalExpenses();
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -190,7 +212,7 @@ const Finance = () => {
       </div>
 
       <div className="mb-6">
-        <FinancialChart shifts={shifts} />
+        <FinancialChart shifts={shifts} extraMonthlyExpenses={personalMonthlyExpenses} />
       </div>
 
       <Card>

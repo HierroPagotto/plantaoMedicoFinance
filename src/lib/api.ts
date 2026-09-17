@@ -317,6 +317,39 @@ class ApiClient {
         return response.data;
     }
 
+    async listExpenses(params?: { year?: number; month?: number; source?: 'personal' | 'shift' }) {
+        const response = await this.api.get('/expenses/', { params });
+        return response.data;
+    }
+
+    async createExpense(data: {
+        category: string;
+        amount: number;
+        expense_date: string;
+        description?: string;
+    }) {
+        const response = await this.api.post('/expenses/', data);
+        return response.data;
+    }
+
+    async updateExpense(
+        expenseId: string | number,
+        data: {
+            category?: string;
+            amount?: number;
+            expense_date?: string;
+            description?: string | null;
+        }
+    ) {
+        const response = await this.api.put(`/expenses/${expenseId}`, data);
+        return response.data;
+    }
+
+    async deleteExpense(expenseId: string | number) {
+        const response = await this.api.delete(`/expenses/${expenseId}`);
+        return response.data;
+    }
+
     async requestPasswordReset(email: string) {
         const response = await this.api.post('/password-reset/request', { email });
         return response.data;

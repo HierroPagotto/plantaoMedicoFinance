@@ -15,7 +15,7 @@ import {
 
 const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-type ChartType = 'revenue' | 'expenses' | 'shifts';
+type ChartType = 'compare' | 'revenue' | 'expenses' | 'shifts';
 
 interface FinancialChartProps {
   shifts?: Array<{
@@ -25,6 +25,7 @@ interface FinancialChartProps {
     status: string;
     expensesTotal?: number;
   }>;
+  extraMonthlyExpenses?: number[];
 }
 
 function parseValue(value: string | number): number {
@@ -33,11 +34,11 @@ function parseValue(value: string | number): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function FinancialChart({ shifts }: FinancialChartProps) {
+export function FinancialChart({ shifts, extraMonthlyExpenses }: FinancialChartProps) {
   const [data, setData] = useState<
     Array<{ month: string; ganhos: number; gastos: number; plantoes: number }>
   >([]);
-  const [chartType, setChartType] = useState<ChartType>('revenue');
+  const [chartType, setChartType] = useState<ChartType>('compare');
 
   useEffect(() => {
     if (!shifts) return;
@@ -78,15 +79,16 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
     const fullData = [];
     for (let month = 0; month < 12; month++) {
       const key = `${currentYear}-${month}`;
+      const personal = extraMonthlyExpenses?.[month] ?? 0;
       fullData.push({
         month: months[month],
         ganhos: monthlyMap[key]?.ganhos || 0,
-        gastos: monthlyMap[key]?.gastos || 0,
+        gastos: (monthlyMap[key]?.gastos || 0) + personal,
         plantoes: monthlyMap[key]?.plantoes || 0,
       });
     }
     setData(fullData);
-  }, [shifts]);
+  }, [shifts, extraMonthlyExpenses]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -106,7 +108,14 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
     <Card className="col-span-1 md:col-span-2">
       <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2 flex-wrap">
         <CardTitle>Visão financeira</CardTitle>
-        <div className="flex bg-muted rounded-md p-1">
+        <div className="flex bg-muted rounded-md p-1 flex-wrap">
+          <button
+            className={tabClass(chartType === 'compare')}
+            onClick={() => setChartType('compare')}
+            type="button"
+          >
+            Comparativo
+          </button>
           <button
             className={tabClass(chartType === 'revenue')}
             onClick={() => setChartType('revenue')}
@@ -131,7 +140,7 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        {chartType === 'revenue' && (
+        {(chartType === 'compare' || chartType === 'revenue' || chartType === 'expenses') && (
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart
               data={data}
@@ -141,46 +150,32 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
               <XAxis dataKey="month" />
               <YAxis tickFormatter={formatCurrency} width={80} />
               <Tooltip
-                formatter={(value: number) => [formatCurrency(value), '']}
+                formatter={(value: number, name: string) => [formatCurrency(value), name]}
                 labelFormatter={(label) => `Mês: ${label}`}
               />
               <Legend />
-              <Area
-                type="monotone"
-                dataKey="ganhos"
-                name="Ganhos"
-                stroke="#6EE7B7"
-                fill="#6ee7b720"
-                strokeWidth={2}
-                activeDot={{ r: 8 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-
-        {chartType === 'expenses' && (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart
-              data={data}
-              margin={{ top: 10, right: 30, left: 24, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={formatCurrency} width={80} />
-              <Tooltip
-                formatter={(value: number) => [formatCurrency(value), '']}
-                labelFormatter={(label) => `Mês: ${label}`}
-              />
-              <Legend />
-              <Area
-                type="monotone"
-                dataKey="gastos"
-                name="Gastos"
-                stroke="#F59E0B"
-                fill="#f59e0b20"
-                strokeWidth={2}
-                activeDot={{ r: 8 }}
-              />
+              {(chartType === 'compare' || chartType === 'revenue') && (
+                <Area
+                  type="monotone"
+                  dataKey="ganhos"
+                  name="Ganhos"
+                  stroke="#6EE7B7"
+                  fill="#6ee7b720"
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }}
+                />
+              )}
+              {(chartType === 'compare' || chartType === 'expenses') && (
+                <Area
+                  type="monotone"
+                  dataKey="gastos"
+                  name="Gastos"
+                  stroke="#F59E0B"
+                  fill="#f59e0b20"
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }}
+                />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         )}

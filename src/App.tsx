@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Shifts from "./pages/Shifts";
 import NewShift from "./pages/NewShift";
 import Finance from "./pages/Finance";
+import Expenses from "./pages/Expenses";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import DoctorRegistration from "./pages/DoctorRegistration";
@@ -62,6 +63,7 @@ const App = () => (
           <Route path="/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
           <Route path="/shifts/new" element={<ProtectedRoute><NewShift /></ProtectedRoute>} />
           <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/doctor-registration" element={<ProtectedRoute><DoctorRegistration /></ProtectedRoute>} />
