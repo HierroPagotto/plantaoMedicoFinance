@@ -11,7 +11,9 @@ import {
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Shift } from '@/types/shift';
+import type { ExpenseSummaryBreakdown } from '@/types/expense';
 import { PageLoading } from '@/components/ui/PageLoading';
+import { ExpenseBreakdownCharts } from '@/components/expenses/ExpenseBreakdownCharts';
 
 const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -54,6 +56,8 @@ const Finance = () => {
   const [personalMonthlyExpenses, setPersonalMonthlyExpenses] = useState<number[]>(
     () => Array(12).fill(0)
   );
+  const [expenseSummary, setExpenseSummary] = useState<ExpenseSummaryBreakdown | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   useEffect(() => {
     const fetchShifts = async () => {
@@ -90,6 +94,19 @@ const Finance = () => {
       }
     };
     fetchPersonalExpenses();
+
+    const fetchSummary = async () => {
+      try {
+        setSummaryLoading(true);
+        const data = await api.getExpenseSummary({ year });
+        setExpenseSummary(data as ExpenseSummaryBreakdown);
+      } catch {
+        setExpenseSummary(null);
+      } finally {
+        setSummaryLoading(false);
+      }
+    };
+    fetchSummary();
 
     const fetchData = async () => {
       try {
@@ -213,6 +230,14 @@ const Finance = () => {
 
       <div className="mb-6">
         <FinancialChart shifts={shifts} extraMonthlyExpenses={personalMonthlyExpenses} />
+      </div>
+
+      <div className="mb-6">
+        <ExpenseBreakdownCharts
+          summary={expenseSummary}
+          loading={summaryLoading}
+          titlePrefix={`Gastos pessoais ${year}`}
+        />
       </div>
 
       <Card>

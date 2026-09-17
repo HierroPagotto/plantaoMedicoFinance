@@ -322,11 +322,33 @@ class ApiClient {
         return response.data;
     }
 
+    async getExpenseSummary(params?: { year?: number; month?: number }) {
+        const response = await this.api.get('/expenses/summary', { params });
+        return response.data;
+    }
+
+    async listPaymentMethods() {
+        const response = await this.api.get('/expenses/payment-methods');
+        return response.data;
+    }
+
+    async createPaymentMethod(name: string) {
+        const response = await this.api.post('/expenses/payment-methods', { name });
+        return response.data;
+    }
+
+    async deletePaymentMethod(methodId: string | number) {
+        const response = await this.api.delete(`/expenses/payment-methods/${methodId}`);
+        return response.data;
+    }
+
     async createExpense(data: {
         category: string;
         amount: number;
         expense_date: string;
         description?: string;
+        recurrence?: string;
+        payment_method_id?: number | null;
     }) {
         const response = await this.api.post('/expenses/', data);
         return response.data;
@@ -339,6 +361,8 @@ class ApiClient {
             amount?: number;
             expense_date?: string;
             description?: string | null;
+            recurrence?: string;
+            payment_method_id?: number | null;
         }
     ) {
         const response = await this.api.put(`/expenses/${expenseId}`, data);

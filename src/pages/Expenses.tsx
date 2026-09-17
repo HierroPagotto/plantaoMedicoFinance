@@ -30,9 +30,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ExpenseBreakdownCharts } from '@/components/expenses/ExpenseBreakdownCharts';
 import api from '@/lib/api';
 import {
   PERSONAL_EXPENSE_CATEGORY_OPTIONS,
+  RECURRENCE_OPTIONS,
+  type ExpensePaymentMethod,
+  type ExpenseRecurrence,
+  type ExpenseSummaryBreakdown,
   type PersonalExpenseCategory,
   type UnifiedExpense,
 } from '@/types/expense';
@@ -80,6 +85,9 @@ const Expenses = () => {
   const [expenses, setExpenses] = useState<UnifiedExpense[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<ExpenseSummaryBreakdown | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [paymentMethods, setPaymentMethods] = useState<ExpensePaymentMethod[]>([]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UnifiedExpense | null>(null);
@@ -87,9 +95,24 @@ const Expenses = () => {
   const [amount, setAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState(todayISO());
   const [description, setDescription] = useState('');
+  const [recurrence, setRecurrence] = useState<ExpenseRecurrence>('none');
+  const [paymentMethodId, setPaymentMethodId] = useState<string>('none');
   const [saving, setSaving] = useState(false);
 
+  const [customMethodOpen, setCustomMethodOpen] = useState(false);
+  const [customMethodName, setCustomMethodName] = useState('');
+  const [savingMethod, setSavingMethod] = useState(false);
+
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+
+  const loadPaymentMethods = async () => {
+    try {
+      const data = await api.listPaymentMethods();
+      setPaymentMethods((data.payment_methods || []) as ExpensePaymentMethod[]);
+    } catch {
+      setPaymentMethods([]);
+    }
+  };
 
   const loadExpenses = async () => {
     try {
@@ -106,8 +129,25 @@ const Expenses = () => {
     }
   };
 
+  const loadSummary = async () => {
+    try {
+      setSummaryLoading(true);
+      const data = await api.getExpenseSummary({ year, month });
+      setSummary(data as ExpenseSummaryBreakdown);
+    } catch {
+      setSummary(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPaymentMethods();
+  }, []);
+
   useEffect(() => {
     loadExpenses();
+    loadSummary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
 
@@ -117,6 +157,8 @@ const Expenses = () => {
     setAmount('');
     setExpenseDate(todayISO());
     setDescription('');
+    setRecurrence('none');
+    setPaymentMethodId('none');
     setFormOpen(true);
   };
 
@@ -127,6 +169,10 @@ const Expenses = () => {
     setAmount(formatNumberToCurrencyInput(Number(expense.amount)));
     setExpenseDate(expense.expense_date?.slice(0, 10) || todayISO());
     setDescription(expense.description || '');
+    setRecurrence((expense.recurrence as ExpenseRecurrence) || 'none');
+    setPaymentMethodId(
+      expense.payment_method_id != null ? String(expense.payment_method_id) : 'none'
+    );
     setFormOpen(true);
   };
 
@@ -141,27 +187,34 @@ const Expenses = () => {
       return;
     }
 
+    const payload = {
+      category,
+      amount: parsedAmount,
+      expense_date: expenseDate,
+      description: description.trim() || null,
+      recurrence,
+      payment_method_id:
+        paymentMethodId === 'none' ? null : Number(paymentMethodId),
+    };
+
     try {
       setSaving(true);
       if (editing) {
-        await api.updateExpense(editing.id, {
-          category,
-          amount: parsedAmount,
-          expense_date: expenseDate,
-          description: description.trim() || null,
-        });
+        await api.updateExpense(editing.id, payload);
         toast.success('Gasto atualizado');
       } else {
         await api.createExpense({
-          category,
-          amount: parsedAmount,
-          expense_date: expenseDate,
+          ...payload,
           description: description.trim() || undefined,
         });
-        toast.success('Gasto adicionado');
+        toast.success(
+          recurrence !== 'none'
+            ? 'Gasto adicionado e recorrências geradas'
+            : 'Gasto adicionado'
+        );
       }
       setFormOpen(false);
-      await loadExpenses();
+      await Promise.all([loadExpenses(), loadSummary()]);
     } catch (error) {
       const message = isAxiosError(error)
         ? (error.response?.data as { message?: string })?.message
@@ -174,16 +227,44 @@ const Expenses = () => {
 
   const handleDelete = async (expense: UnifiedExpense) => {
     if (expense.source !== 'personal') return;
-    if (!window.confirm('Excluir este gasto?')) return;
+    const msg = expense.is_recurrence_origin
+      ? 'Excluir este gasto? Se for a origem da série, lançamentos futuros da recorrência também serão removidos.'
+      : 'Excluir este gasto?';
+    if (!window.confirm(msg)) return;
     try {
       await api.deleteExpense(expense.id);
       toast.success('Gasto excluído');
-      await loadExpenses();
+      await Promise.all([loadExpenses(), loadSummary()]);
     } catch (error) {
       const message = isAxiosError(error)
         ? (error.response?.data as { message?: string })?.message
         : undefined;
       toast.error(message || 'Erro ao excluir gasto');
+    }
+  };
+
+  const handleCreatePaymentMethod = async () => {
+    const name = customMethodName.trim();
+    if (name.length < 2) {
+      toast.error('Informe um nome com pelo menos 2 caracteres');
+      return;
+    }
+    try {
+      setSavingMethod(true);
+      const data = await api.createPaymentMethod(name);
+      const method = data.payment_method as ExpensePaymentMethod;
+      await loadPaymentMethods();
+      setPaymentMethodId(String(method.id));
+      setCustomMethodOpen(false);
+      setCustomMethodName('');
+      toast.success('Forma de cobrança adicionada');
+    } catch (error) {
+      const message = isAxiosError(error)
+        ? (error.response?.data as { message?: string })?.message
+        : undefined;
+      toast.error(message || 'Erro ao criar forma de cobrança');
+    } finally {
+      setSavingMethod(false);
     }
   };
 
@@ -245,6 +326,8 @@ const Expenses = () => {
           </div>
         </div>
 
+        <ExpenseBreakdownCharts summary={summary} loading={summaryLoading} />
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Lista de gastos</CardTitle>
@@ -273,6 +356,18 @@ const Expenses = () => {
                           <Badge variant={isPersonal ? 'secondary' : 'outline'}>
                             {isPersonal ? 'Pessoal' : 'Plantão'}
                           </Badge>
+                          {isPersonal &&
+                            expense.recurrence &&
+                            expense.recurrence !== 'none' && (
+                              <Badge variant="outline">
+                                {expense.recurrence_label || expense.recurrence}
+                              </Badge>
+                            )}
+                          {isPersonal && expense.payment_method_name && (
+                            <Badge variant="outline">
+                              {expense.payment_method_name}
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {formatDate(expense.expense_date)}
@@ -318,7 +413,7 @@ const Expenses = () => {
       </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editing ? 'Editar gasto pessoal' : 'Novo gasto pessoal'}
@@ -360,6 +455,50 @@ const Expenses = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label>Recorrência de cobrança</Label>
+              <Select
+                value={recurrence}
+                onValueChange={(v) => setRecurrence(v as ExpenseRecurrence)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RECURRENCE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Onde é cobrado</Label>
+              <div className="flex gap-2">
+                <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method.id} value={String(method.id)}>
+                        {method.name}
+                        {method.is_system ? '' : ' (meu)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCustomMethodOpen(true)}
+                >
+                  Adicionar
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input
                 value={description}
@@ -375,6 +514,35 @@ const Expenses = () => {
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={customMethodOpen} onOpenChange={setCustomMethodOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova forma de cobrança</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>Nome</Label>
+            <Input
+              value={customMethodName}
+              onChange={(e) => setCustomMethodName(e.target.value)}
+              placeholder="Ex.: Cartão Santander"
+              maxLength={80}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCustomMethodOpen(false)}
+              disabled={savingMethod}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleCreatePaymentMethod} disabled={savingMethod}>
+              {savingMethod ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
