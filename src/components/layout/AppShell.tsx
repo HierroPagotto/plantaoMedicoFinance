@@ -6,15 +6,22 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
   SidebarHeader,
   SidebarRail,
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun, Store } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun, Store, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Header from './Header';
 
 interface AppShellProps {
@@ -24,6 +31,7 @@ interface AppShellProps {
 export const AppShell = ({ children }: AppShellProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [user, setUser] = useState<{ name: string; specialty: string; photo_url?: string; is_admin?: boolean }>({
     name: 'Carregando...',
@@ -109,30 +117,57 @@ export const AppShell = ({ children }: AppShellProps) => {
 
           <SidebarHeader className="border-b border-border">
             <div className="flex items-center p-2 group-data-[collapsible=icon]:justify-center">
-              <Link
-                to="/doctor-profile"
-                className="flex items-center w-full group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:justify-center"
-              >
-                <Avatar className="h-10 w-10 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
-                  {user.photo_url ? (
-                    <AvatarImage src={user.photo_url} alt={user.name} />
-                  ) : (
-                    <AvatarFallback>
-                      {(user.name || '?')
-                        .split(' ')
-                        .filter(Boolean)
-                        .map((part) => part[0])
-                        .join('')
-                        .slice(0, 2)
-                        .toUpperCase() || '?'}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <div className="ml-3 overflow-hidden group-data-[collapsible=icon]:hidden">
-                  <p className="font-medium truncate">{user.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.specialty}</p>
-                </div>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center rounded-md p-1 text-left outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:justify-center"
+                    title={user.name}
+                  >
+                    <Avatar className="h-10 w-10 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
+                      {user.photo_url ? (
+                        <AvatarImage src={user.photo_url} alt={user.name} />
+                      ) : (
+                        <AvatarFallback>
+                          {(user.name || '?')
+                            .split(' ')
+                            .filter(Boolean)
+                            .map((part) => part[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase() || '?'}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div className="ml-3 min-w-0 flex-1 overflow-hidden group-data-[collapsible=icon]:hidden">
+                      <p className="font-medium truncate">{user.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.specialty}</p>
+                    </div>
+                    <ChevronDown className="ml-1 h-4 w-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none truncate">{user.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.specialty}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/doctor-profile')}>
+                    <User className="mr-2 h-4 w-4" />
+                    Ver perfil
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => navigate('/logout')}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <Button
               variant="ghost"
@@ -168,19 +203,6 @@ export const AppShell = ({ children }: AppShellProps) => {
               })}
             </SidebarMenu>
           </SidebarContent>
-
-          <SidebarFooter>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
-              asChild
-            >
-              <Link to="/logout" title="Sair">
-                <LogOut className="h-5 w-5 mr-3 group-data-[collapsible=icon]:mr-0" />
-                <span className="group-data-[collapsible=icon]:hidden">Sair</span>
-              </Link>
-            </Button>
-          </SidebarFooter>
 
           <SidebarRail />
         </Sidebar>
