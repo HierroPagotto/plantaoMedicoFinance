@@ -9,6 +9,8 @@ import {
   SidebarHeader,
   SidebarRail,
   SidebarInset,
+  SidebarGroup,
+  SidebarGroupContent,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -171,7 +173,8 @@ export const AppShell = ({ children }: AppShellProps) => {
             </div>
             <Button
               variant="ghost"
-              className="w-full justify-start mt-2 text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
+              size="icon"
+              className="mt-2 text-muted-foreground hover:text-foreground w-full justify-start group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             >
@@ -187,21 +190,33 @@ export const AppShell = ({ children }: AppShellProps) => {
           </SidebarHeader>
 
           <SidebarContent>
-            <SidebarMenu>
-              {links.map((link) => {
-                const LinkIcon = link.icon;
-                return (
-                  <SidebarMenuItem key={link.name}>
-                    <SidebarMenuButton asChild tooltip={link.name} isActive={isActive(link.href)}>
-                      <Link to={link.href}>
-                        <LinkIcon className="h-5 w-5" />
-                        <span>{link.name}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {links.map((link) => {
+                    const LinkIcon = link.icon;
+                    return (
+                      <SidebarMenuItem
+                        key={link.name}
+                        className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center"
+                      >
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={link.name}
+                          isActive={isActive(link.href)}
+                          className="group-data-[collapsible=icon]:justify-center"
+                        >
+                          <Link to={link.href}>
+                            <LinkIcon className="h-5 w-5" />
+                            <span>{link.name}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
           </SidebarContent>
 
           <SidebarRail />
