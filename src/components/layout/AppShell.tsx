@@ -21,8 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun, Store, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Store, ChevronDown } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Header from './Header';
 
@@ -40,13 +39,6 @@ export const AppShell = ({ children }: AppShellProps) => {
     specialty: '...',
     photo_url: undefined,
     is_admin: false
-  });
-
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') || 'light';
-    }
-    return 'light';
   });
 
   useEffect(() => {
@@ -68,18 +60,6 @@ export const AppShell = ({ children }: AppShellProps) => {
       }
     }
   }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const root = window.document.documentElement;
-      if (theme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-      localStorage.setItem('theme', theme);
-    }
-  }, [theme]);
 
   const links = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -171,22 +151,6 @@ export const AppShell = ({ children }: AppShellProps) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mt-2 text-muted-foreground hover:text-foreground w-full justify-start group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-5 w-5 mr-2 group-data-[collapsible=icon]:mr-0" />
-              ) : (
-                <Moon className="h-5 w-5 mr-2 group-data-[collapsible=icon]:mr-0" />
-              )}
-              <span className="group-data-[collapsible=icon]:hidden">
-                {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-              </span>
-            </Button>
           </SidebarHeader>
 
           <SidebarContent>
