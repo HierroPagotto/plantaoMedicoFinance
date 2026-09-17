@@ -51,6 +51,7 @@ import api from '@/lib/api';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
 import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
 import { isMarketplaceShift } from '@/components/shifts/shift-utils';
+import { PageLoading } from '@/components/ui/PageLoading';
 
 interface Hospital {
   id: number;
@@ -256,9 +257,7 @@ const History = () => {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center h-64">
-          <p>Carregando plantões...</p>
-        </div>
+        <PageLoading label="Carregando plantões..." />
       </AppShell>
     );
   }

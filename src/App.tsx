@@ -67,9 +67,12 @@ const App = () => (
           <Route path="/doctor-registration" element={<ProtectedRoute><DoctorRegistration /></ProtectedRoute>} />
           <Route path="/doctor-profile" element={<ProtectedRoute><DoctorProfile /></ProtectedRoute>} />
           <Route path="/doctor-profile/:id" element={<DoctorProfilePublic />} />
-          <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><AdminUsers /></AdminRoute></ProtectedRoute>} />
-          <Route path="/admin/hospitals" element={<ProtectedRoute><AdminRoute><AdminHospitals /></AdminRoute></ProtectedRoute>} />
-          <Route path="/admin/opportunities" element={<ProtectedRoute><AdminRoute><AdminOpportunities /></AdminRoute></ProtectedRoute>} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+            <Route path="/admin/hospitals" element={<AdminRoute><AdminHospitals /></AdminRoute>} />
+            <Route path="/admin/opportunities" element={<AdminRoute><AdminOpportunities /></AdminRoute>} />
+          </Route>
 
           <Route path="/hospital" element={<ProtectedRoute role="hospital_staff"><HospitalDashboard /></ProtectedRoute>} />
           <Route path="/hospital/staff" element={<ProtectedRoute role="hospital_staff"><HospitalStaffPage /></ProtectedRoute>} />

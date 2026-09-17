@@ -10,6 +10,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
 import { formatCouncilDisplay, councilLabel } from '@/lib/professions';
+import { PageLoading } from '@/components/ui/PageLoading';
 
 type AdminUser = {
   id: number;
@@ -75,8 +76,22 @@ export default function AdminUsers() {
     setDrawerOpen(true);
   };
 
-  if (loading) return <div>Carregando...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) {
+    return (
+      <AppShell>
+        <PageLoading label="Carregando usuários..." />
+      </AppShell>
+    );
+  }
+  if (error) {
+    return (
+      <AppShell>
+        <div className="flex h-48 items-center justify-center text-sm text-destructive">
+          {error}
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

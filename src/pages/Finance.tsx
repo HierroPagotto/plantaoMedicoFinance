@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Shift } from '@/types/shift';
+import { PageLoading } from '@/components/ui/PageLoading';
 
 const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -91,12 +92,18 @@ const Finance = () => {
     }).format(value);
   };
 
-  if (loading || !financialData) {
+  if (loading && !financialData) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center h-64">
-          <p>Carregando dados financeiros...</p>
-        </div>
+        <PageLoading label="Carregando dados financeiros..." />
+      </AppShell>
+    );
+  }
+
+  if (!financialData) {
+    return (
+      <AppShell>
+        <PageLoading label="Carregando dados financeiros..." />
       </AppShell>
     );
   }

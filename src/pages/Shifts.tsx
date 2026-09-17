@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Info, CheckCircle } from 'lucide-react';
 import type { Shift } from '@/types/shift';
 import { formatShortDate } from '@/lib/date-utils';
+import { PageLoading } from '@/components/ui/PageLoading';
 import { Checkbox } from '@/components/ui/checkbox';
 
 type FilterOptions = {
@@ -218,9 +219,7 @@ const Shifts = () => {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center h-64">
-          <p>Carregando plantões...</p>
-        </div>
+        <PageLoading label="Carregando plantões..." />
       </AppShell>
     );
   }

@@ -9,6 +9,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
 import { isAxiosError } from 'axios';
+import { PageLoading } from '@/components/ui/PageLoading';
 
 type AdminHospital = {
   id: number;
@@ -130,8 +131,22 @@ export default function AdminHospitals() {
     setDrawerOpen(true);
   };
 
-  if (loading) return <div>Carregando...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) {
+    return (
+      <AppShell>
+        <PageLoading label="Carregando hospitais..." />
+      </AppShell>
+    );
+  }
+  if (error) {
+    return (
+      <AppShell>
+        <div className="flex h-48 items-center justify-center text-sm text-destructive">
+          {error}
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

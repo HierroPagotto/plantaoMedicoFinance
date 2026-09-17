@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { formatShortDate } from '@/lib/date-utils';
 import { isAxiosError } from 'axios';
+import { PageLoading } from '@/components/ui/PageLoading';
 
 const statusLabel: Record<string, string> = {
   open: 'Aberta',
@@ -116,7 +117,7 @@ export default function AdminOpportunities() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+          <PageLoading label="Carregando oportunidades..." />
         ) : items.length === 0 ? (
           <div className="rounded-xl border border-dashed p-10 text-center">
             <p className="font-medium">Nenhuma oportunidade encontrada</p>
