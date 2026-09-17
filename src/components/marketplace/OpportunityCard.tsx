@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import type { ShiftOpportunity } from '@/types/marketplace';
 import { formatShortDate } from '@/lib/date-utils';
 import { formatOpportunityRequirements } from '@/lib/marketplace-requirements';
+import { getProfessionMeta } from '@/lib/professions';
 
 function formatTime(value?: string) {
   if (!value) return '—';
@@ -27,6 +28,7 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
     opportunity.hospital?.address ||
     '—';
   const requirements = formatOpportunityRequirements(opportunity);
+  const professionLabel = getProfessionMeta(opportunity.required_profession).label;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40">
@@ -35,10 +37,13 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
           <h3 className="text-lg font-semibold text-foreground">{hospitalName}</h3>
           <p className="text-sm text-muted-foreground">{opportunity.specialty}</p>
         </div>
-        <Badge variant="secondary">
-          {opportunity.slots_remaining} vaga
-          {opportunity.slots_remaining === 1 ? '' : 's'}
-        </Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant="secondary">
+            {opportunity.slots_remaining} vaga
+            {opportunity.slots_remaining === 1 ? '' : 's'}
+          </Badge>
+          <Badge variant="outline">{professionLabel}</Badge>
+        </div>
       </div>
 
       <div className="mb-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">

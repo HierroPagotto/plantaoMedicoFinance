@@ -23,6 +23,7 @@ import {
   Printer,
 } from "lucide-react";
 import PrintButton from "@/components/ui/print-button";
+import { formatCouncilDisplay, councilLabel } from "@/lib/professions";
 
 interface UserData {
   accepts_fixed_shifts: boolean;
@@ -33,6 +34,10 @@ interface UserData {
   cities_of_work: string | null;
   city: string;
   created_at: string;
+  profession?: string | null;
+  council_type?: string | null;
+  council_number?: string | null;
+  council_state?: string | null;
   crm: string;
   crm_state: string | null;
   email: string;
@@ -93,8 +98,7 @@ export default function DoctorProfile() {
     try {
       await navigator.clipboard.writeText(profileUrl);
       toast.success("Link copiado para a área de transferência!");
-    } catch (err) {
-      toast.error("Não foi possível copiar o link");
+    } catch {
       const textArea = document.createElement("textarea");
       textArea.value = profileUrl;
       document.body.appendChild(textArea);
@@ -102,7 +106,9 @@ export default function DoctorProfile() {
       try {
         document.execCommand("copy");
         toast.success("Link copiado!");
-      } catch (fallbackErr) { }
+      } catch {
+        toast.error("Não foi possível copiar o link");
+      }
       document.body.removeChild(textArea);
     }
   };
@@ -180,7 +186,7 @@ export default function DoctorProfile() {
                     {doctor.main_specialty}
                   </Badge>
                   <Badge variant="outline" className="bg-primary/10">
-                    CRM {doctor.crm}/{doctor.crm_state || "UF"}
+                    {formatCouncilDisplay(doctor) || "Conselho não informado"}
                   </Badge>
                 </div>
                 <div className="flex flex-col md:flex-row gap-4 mt-4 text-muted-foreground">
@@ -426,9 +432,11 @@ export default function DoctorProfile() {
                     <p>{doctor.graduation_year || "Não informado"}</p>
                   </div>
                   <div>
-                    <h3 className="font-medium mb-1">CRM</h3>
+                    <h3 className="font-medium mb-1">
+                      {councilLabel(doctor.profession) || doctor.council_type || "Conselho"}
+                    </h3>
                     <p>
-                      {doctor.crm}/{doctor.crm_state || "UF"}
+                      {formatCouncilDisplay(doctor) || "Não informado"}
                     </p>
                   </div>
                 </div>

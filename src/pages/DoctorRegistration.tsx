@@ -131,7 +131,7 @@ const formSchema = z.object({
       practiceAreas: z
         .array(z.string())
         .min(1, { message: "Selecione pelo menos uma área de atuação" }),
-      procedures: z.array(z.string()).min(1, { message: "Selecione pelo menos um procedimento" }),
+      procedures: z.array(z.string()).optional().default([]),
       shiftTypes: z.array(z.string()).min(1, { message: "Selecione pelo menos um tipo de plantão" }),
     })
     .superRefine((data, ctx) => {
@@ -375,7 +375,7 @@ export default function DoctorRegistration() {
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
             <h3 className="font-medium text-amber-800">Complete seu perfil para continuar</h3>
             <p className="text-amber-700 mt-1">
-              Precisamos do seu CRM, telefone, cidade e demais dados profissionais antes de liberar o app.
+              Precisamos do seu {councilType}, telefone, cidade e demais dados profissionais antes de liberar o app.
             </p>
           </div>
         )}
@@ -683,7 +683,7 @@ export default function DoctorRegistration() {
                 data-field="specialties.procedures"
                 className={cn(fieldHasError("specialties.procedures") && groupErrorClass)}
               >
-                <Label className="mb-2 block">Procedimentos Dominados *</Label>
+                <Label className="mb-2 block">Procedimentos Dominados</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {procedures.map((procedure) => (
                     <div key={procedure} className="flex items-center space-x-2">

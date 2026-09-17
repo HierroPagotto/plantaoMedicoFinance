@@ -24,7 +24,7 @@ export type CreateHospitalOpportunityPayload = {
     start_time: string;
     end_time: string;
     specialty: string;
-    required_profession: string;
+    required_profession?: string;
     value: number;
     payment_date: string;
     city?: string;

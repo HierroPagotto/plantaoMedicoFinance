@@ -165,12 +165,18 @@ export function transformApiToForm(
   }
 
   const known = specialtiesFor(profession).filter((s) => s !== OTHER_SPECIALTY)
-  const selectedSpecialties = specialtiesList.filter((s) => known.includes(s))
-  const customFromList = specialtiesList.find((s) => !known.includes(s)) || ""
+  const customFromList =
+    specialtiesList.find((s) => !known.includes(s) && s !== OTHER_SPECIALTY) || ""
   const { mainSpecialty, customSpecialty } = resolveSpecialtyFromApi(
     specialtiesList[0] || data.main_specialty,
     profession
   )
+  const selectedSpecialties = [
+    ...specialtiesList.filter((s) => known.includes(s)),
+    ...(customFromList || (mainSpecialty === OTHER_SPECIALTY && customSpecialty)
+      ? [OTHER_SPECIALTY]
+      : []),
+  ]
 
   return {
     profession,
@@ -192,7 +198,9 @@ export function transformApiToForm(
           ? selectedSpecialties
           : mainSpecialty && mainSpecialty !== OTHER_SPECIALTY
             ? [mainSpecialty]
-            : [],
+            : mainSpecialty === OTHER_SPECIALTY
+              ? [OTHER_SPECIALTY]
+              : [],
       practiceAreas: Array.isArray(data.practice_areas) ? data.practice_areas : [],
       procedures: splitCsv(data.procedures),
       shiftTypes: splitCsv(data.shift_types),
@@ -235,10 +243,10 @@ export function transformFormToApi(
 ): DoctorApiUpdatePayload {
   const profession = values.profession || "doctor"
   const selected: string[] = Array.isArray(values.specialties.selectedSpecialties)
-    ? [...values.specialties.selectedSpecialties]
+    ? values.specialties.selectedSpecialties.filter((s) => s !== OTHER_SPECIALTY)
     : []
   const custom = (values.specialties.customSpecialty || "").trim()
-  if (custom) {
+  if (custom && !selected.includes(custom)) {
     selected.push(custom)
   }
   if (
@@ -276,8 +284,8 @@ export function transformFormToApi(
     main_specialty: mainSpecialty,
     specialties: selected,
     practice_areas: values.specialties.practiceAreas || [],
-    procedures: values.specialties.procedures.join(", "),
-    shift_types: values.specialties.shiftTypes.join(", "),
+    procedures: (values.specialties.procedures || []).join(", "),
+    shift_types: (values.specialties.shiftTypes || []).join(", "),
     preferred_periods: values.availability.preferredPeriods.join(", "),
     preferred_days: values.availability.preferredDays.join(", "),
     accepts_fixed_shifts: values.availability.acceptsFixedShifts,

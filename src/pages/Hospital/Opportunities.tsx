@@ -16,6 +16,7 @@ import {
 import { formatShortDate } from '@/lib/date-utils';
 import { Plus } from 'lucide-react';
 import { isAxiosError } from 'axios';
+import { getProfessionMeta } from '@/lib/professions';
 
 const statusLabel: Record<string, string> = {
   open: 'Aberta',
@@ -69,7 +70,7 @@ const HospitalOpportunitiesPage = () => {
           <div>
             <h1 className="text-2xl font-semibold">Vagas de plantão</h1>
             <p className="text-slate-600">
-              Publique oportunidades e acompanhe candidaturas dos médicos.
+              Publique oportunidades e acompanhe candidaturas dos profissionais.
             </p>
           </div>
           <Button asChild>
@@ -100,7 +101,7 @@ const HospitalOpportunitiesPage = () => {
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="font-medium">Nenhuma vaga encontrada</p>
             <p className="mt-1 text-sm text-slate-500">
-              Publique a primeira oportunidade para atrair médicos.
+              Publique a primeira oportunidade para atrair profissionais.
             </p>
             <Button asChild className="mt-4">
               <Link to="/hospital/opportunities/new">Publicar vaga</Link>
@@ -114,6 +115,7 @@ const HospitalOpportunitiesPage = () => {
                   <th className="px-4 py-3">Data</th>
                   <th className="px-4 py-3">Horário</th>
                   <th className="px-4 py-3">Especialidade</th>
+                  <th className="px-4 py-3">Profissão</th>
                   <th className="px-4 py-3">Valor</th>
                   <th className="px-4 py-3">Pagamento</th>
                   <th className="px-4 py-3">Vagas</th>
@@ -130,6 +132,9 @@ const HospitalOpportunitiesPage = () => {
                       {formatTime(item.start_time)}–{formatTime(item.end_time)}
                     </td>
                     <td className="px-4 py-3">{item.specialty}</td>
+                    <td className="px-4 py-3">
+                      {getProfessionMeta(item.required_profession).label}
+                    </td>
                     <td className="px-4 py-3">{formatMoney(Number(item.value))}</td>
                     <td className="px-4 py-3">
                       {item.payment_date ? formatShortDate(item.payment_date) : 'A definir'}

@@ -306,7 +306,7 @@ const HospitalNewOpportunityPage = () => {
                     <Input type="date" {...field} />
                   </FormControl>
                   <p className="text-xs text-slate-500">
-                    Quando o médico deve receber (ex.: 30 ou 45 dias após o plantão).
+                    Quando o profissional deve receber (ex.: 30 ou 45 dias após o plantão).
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -316,7 +316,7 @@ const HospitalNewOpportunityPage = () => {
               <div>
                 <FormLabel>Requisitos (opcional)</FormLabel>
                 <p className="text-xs text-slate-500">
-                  Se marcados, só médicos com essas certificações no perfil verão a vaga.
+                  Se marcados, só profissionais com essas certificações no perfil verão a vaga.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">

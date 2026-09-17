@@ -9,6 +9,7 @@ import { Shield } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
+import { formatCouncilDisplay, councilLabel } from '@/lib/professions';
 
 type AdminUser = {
   id: number;
@@ -16,6 +17,10 @@ type AdminUser = {
   email: string;
   photo_url?: string | null;
   is_admin?: boolean;
+  profession?: string | null;
+  council_type?: string | null;
+  council_number?: string | null;
+  council_state?: string | null;
   crm?: string | null;
   crm_state?: string | null;
   phone?: string | null;
@@ -150,8 +155,10 @@ export default function AdminUsers() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="font-semibold">CRM</div>
-                  <div>{selectedUser.crm} / {selectedUser.crm_state || 'UF'}</div>
+                  <div className="font-semibold">
+                    {councilLabel(selectedUser.profession) || selectedUser.council_type || 'Conselho'}
+                  </div>
+                  <div>{formatCouncilDisplay(selectedUser) || '—'}</div>
                 </div>
                 <div>
                   <div className="font-semibold">Telefone</div>

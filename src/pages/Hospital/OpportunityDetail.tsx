@@ -10,6 +10,7 @@ import { formatShortDate } from '@/lib/date-utils';
 import { formatOpportunityRequirements } from '@/lib/marketplace-requirements';
 import { ArrowLeft } from 'lucide-react';
 import { isAxiosError } from 'axios';
+import { formatCouncilDisplay, getProfessionMeta } from '@/lib/professions';
 
 const statusLabel: Record<string, string> = {
   open: 'Aberta',
@@ -77,7 +78,7 @@ const HospitalOpportunityDetailPage = () => {
       await api.approveMarketplaceApplication(applicationId);
       toast({
         title: 'Candidatura aprovada',
-        description: 'Plantão confirmado para o médico.',
+        description: 'Plantão confirmado para o profissional.',
       });
       await load();
     } catch (err: unknown) {
@@ -163,6 +164,9 @@ const HospitalOpportunityDetailPage = () => {
               <Badge variant="secondary">
                 {statusLabel[opportunity.status] || opportunity.status}
               </Badge>
+              <Badge variant="outline">
+                {getProfessionMeta(opportunity.required_profession).label}
+              </Badge>
             </div>
             <p className="mt-1 text-slate-600">
               {formatTime(opportunity.start_time)}–{formatTime(opportunity.end_time)} ·{' '}
@@ -196,7 +200,7 @@ const HospitalOpportunityDetailPage = () => {
 
           {applications.length === 0 ? (
             <p className="p-6 text-sm text-slate-500">
-              Ainda não há médicos interessados nesta vaga.
+              Ainda não há profissionais interessados nesta vaga.
             </p>
           ) : (
             <div className="divide-y">
@@ -208,7 +212,7 @@ const HospitalOpportunityDetailPage = () => {
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">
-                        {app.doctor?.name || `Médico #${app.doctor_id}`}
+                        {app.doctor?.name || `Profissional #${app.doctor_id}`}
                       </p>
                       <Badge variant="outline">
                         {statusLabel[app.status] || app.status}
@@ -218,19 +222,12 @@ const HospitalOpportunityDetailPage = () => {
                       {(app.doctor?.specialties?.length
                         ? app.doctor.specialties.join(', ')
                         : app.doctor?.main_specialty) || '—'}
-                      {(() => {
-                        const type =
-                          app.doctor?.council_type ||
-                          (app.doctor?.crm ? 'CRM' : null);
-                        const number =
-                          app.doctor?.council_number || app.doctor?.crm;
-                        const state =
-                          app.doctor?.council_state || app.doctor?.crm_state;
-                        if (!number) return '';
-                        return ` · ${type || 'Conselho'} ${number}${
-                          state ? `/${state}` : ''
-                        }`;
-                      })()}
+                      {app.doctor
+                        ? (() => {
+                            const display = formatCouncilDisplay(app.doctor);
+                            return display ? ` · ${display}` : '';
+                          })()
+                        : ''}
                       {app.doctor?.city ? ` · ${app.doctor.city}` : ''}
                     </p>
                     {(app.doctor?.acls ||

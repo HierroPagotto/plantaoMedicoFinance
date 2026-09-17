@@ -73,7 +73,7 @@ const HospitalDashboard = () => {
           <div>
             <h1 className="text-2xl font-semibold">Olá, {user.name || 'gestor'}</h1>
             <p className="text-slate-600">
-              Publique plantões e selecione os médicos interessados.
+              Publique plantões e selecione os profissionais interessados.
             </p>
           </div>
           <Button asChild>

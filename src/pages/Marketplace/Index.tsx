@@ -17,23 +17,16 @@ import type { ShiftOpportunity } from '@/types/marketplace';
 import { useToast } from '@/hooks/use-toast';
 import { ClipboardList, Search } from 'lucide-react';
 import { isAxiosError } from 'axios';
+import { OTHER_SPECIALTY, normalizeProfession, specialtiesFor } from '@/lib/professions';
 
-const specialties = [
-  'Cardiologia',
-  'Clínica Médica',
-  'Dermatologia',
-  'Endocrinologia',
-  'Gastroenterologia',
-  'Geriatria',
-  'Ginecologia',
-  'Neurologia',
-  'Oftalmologia',
-  'Ortopedia',
-  'Pediatria',
-  'Psiquiatria',
-  'Radiologia',
-  'UTI',
-];
+function readLoggedProfession() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('userData') || '{}');
+    return normalizeProfession(parsed.profession);
+  } catch {
+    return 'doctor' as const;
+  }
+}
 
 const MarketplacePage = () => {
   const { toast } = useToast();
@@ -47,6 +40,9 @@ const MarketplacePage = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const perPage = 12;
+  const specialtyOptions = specialtiesFor(readLoggedProfession()).filter(
+    (s) => s !== OTHER_SPECIALTY
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -120,7 +116,7 @@ const MarketplacePage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas especialidades</SelectItem>
-              {specialties.map((item) => (
+              {specialtyOptions.map((item) => (
                 <SelectItem key={item} value={item}>
                   {item}
                 </SelectItem>
