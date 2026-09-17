@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import api from '@/lib/api';
+import { isMarketplaceShift } from '@/components/shifts/shift-utils';
 
 export type ShiftStatus = 'scheduled' | 'completed' | 'paid' | 'canceled';
 
@@ -39,24 +40,15 @@ export interface ShiftProps {
     address: string;
   };
   value: string;
+  valueNumber?: number;
+  expensesTotal?: number;
+  netValue?: number;
   specialty: string;
   paymentDate: Date | null;
   status: ShiftStatus;
   /** 'manual' | 'marketplace' — plantões do marketplace não são editáveis pelo médico */
   source?: string;
   opportunityId?: number | null;
-}
-
-export function isMarketplaceShift(shift: {
-  source?: string | null;
-  opportunityId?: number | null;
-  opportunity_id?: number | null;
-}): boolean {
-  return (
-    shift.source === 'marketplace' ||
-    Boolean(shift.opportunityId) ||
-    Boolean(shift.opportunity_id)
-  );
 }
 
 interface ShiftCardProps {
@@ -83,17 +75,17 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
   const fromMarketplace = isMarketplaceShift(shift);
   const canEdit = !fromMarketplace && Boolean(onEdit);
   const canDelete = !fromMarketplace;
-  
+
   const updateShiftStatus = async (id: string, newStatus: ShiftStatus) => {
     try {
       setIsUpdating(true);
       await api.updateShiftStatus(id, newStatus);
-      
+
       toast({
         title: "Status atualizado",
         description: `O plantão foi marcado como ${statusConfig[newStatus].label.toLowerCase()}.`,
       });
-      
+
       if (onStatusChange) {
         onStatusChange(id, newStatus);
       }
@@ -108,18 +100,18 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
       setIsUpdating(false);
     }
   };
-  
+
   const deleteShift = async (id: string) => {
     try {
       setIsDeleting(true);
-      
+
       await api.deleteShift(id);
-      
+
       toast({
         title: 'Plantão excluído',
         description: 'O plantão foi excluído com sucesso.',
       });
-      
+
       if (onStatusChange) {
         onStatusChange(id, 'deleted' as ShiftStatus);
       }
@@ -156,7 +148,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
             {/*<Badge className={cn("font-normal", status.color)}>
               {status.label}
             </Badge>*/}
-            
+
             {shift.status !== 'paid' && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -197,7 +189,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
+                          <AlertDialogAction
                             onClick={() => deleteShift(shift.id)}
                             className="bg-red-600 hover:bg-red-700"
                             disabled={isDeleting}
@@ -232,8 +224,16 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col gap-0.5">
             <span className={compact ? "text-sm font-medium" : "text-base font-medium"}>{shift.value}</span>
+            {(shift.expensesTotal ?? 0) > 0 && (
+              <span className="text-xs text-muted-foreground">
+                Gastos {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(shift.expensesTotal || 0)}
+                {shift.netValue != null && (
+                  <> · Líquido {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(shift.netValue)}</>
+                )}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {fromMarketplace && (

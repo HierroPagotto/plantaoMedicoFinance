@@ -285,6 +285,38 @@ class ApiClient {
         return response.data;
     }
 
+    async listShiftExpenses(shiftId: string | number) {
+        const response = await this.api.get(`/shifts/${shiftId}/expenses`);
+        return response.data;
+    }
+
+    async createShiftExpense(
+        shiftId: string | number,
+        data: { category: string; amount: number; description?: string }
+    ) {
+        const response = await this.api.post(`/shifts/${shiftId}/expenses`, data);
+        return response.data;
+    }
+
+    async updateShiftExpense(
+        shiftId: string | number,
+        expenseId: string | number,
+        data: { category?: string; amount?: number; description?: string | null }
+    ) {
+        const response = await this.api.put(
+            `/shifts/${shiftId}/expenses/${expenseId}`,
+            data
+        );
+        return response.data;
+    }
+
+    async deleteShiftExpense(shiftId: string | number, expenseId: string | number) {
+        const response = await this.api.delete(
+            `/shifts/${shiftId}/expenses/${expenseId}`
+        );
+        return response.data;
+    }
+
     async requestPasswordReset(email: string) {
         const response = await this.api.post('/password-reset/request', { email });
         return response.data;

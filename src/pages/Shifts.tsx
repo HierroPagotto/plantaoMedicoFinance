@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/AppShell';
-import { ShiftCard, type ShiftProps, type ShiftStatus, isMarketplaceShift } from '@/components/shifts/ShiftCard';
+import { ShiftCard, type ShiftProps, type ShiftStatus } from '@/components/shifts/ShiftCard';
+import { isMarketplaceShift } from '@/components/shifts/shift-utils';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Filter, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -26,6 +27,7 @@ import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
+import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
 import { Badge } from '@/components/ui/badge';
 import { Info, CheckCircle } from 'lucide-react';
 import type { Shift } from '@/types/shift';
@@ -61,6 +63,8 @@ type ApiShift = {
   payment_date: string | null;
   source?: string;
   opportunity_id?: number | null;
+  expenses_total?: number;
+  net_value?: number;
   created_at: string;
   updated_at: string;
 };
@@ -125,6 +129,12 @@ const Shifts = () => {
             currency: 'BRL',
             minimumFractionDigits: 2
           }),
+          valueNumber: Number(shift.value),
+          expensesTotal: Number(shift.expenses_total || 0),
+          netValue:
+            shift.net_value != null
+              ? Number(shift.net_value)
+              : Number(shift.value) - Number(shift.expenses_total || 0),
           specialty: shift.specialty,
           paymentDate: shift.payment_date ? new Date(shift.payment_date) : null,
           status: shift.status,
@@ -377,7 +387,7 @@ const Shifts = () => {
       </div>
       {/* Dialog de Detalhes */}
       <Dialog open={!!selectedShift} onOpenChange={() => setSelectedShift(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes do plantão</DialogTitle>
             <DialogDescription>
@@ -424,10 +434,26 @@ const Shifts = () => {
                 </div>
                 {isMarketplaceShift(selectedShift) && (
                   <div className="col-span-2">
-                    <Badge variant="secondary">Marketplace — somente leitura</Badge>
+                    <Badge variant="secondary">Marketplace — plantão travado; gastos liberados</Badge>
                   </div>
                 )}
               </div>
+              <ShiftExpensesSection
+                shiftId={selectedShift.id}
+                shiftValue={selectedShift.valueNumber}
+                onChanged={({ expensesTotal, netValue }) => {
+                  setSelectedShift((prev) =>
+                    prev ? { ...prev, expensesTotal, netValue } : prev
+                  );
+                  setShifts((prev) =>
+                    prev.map((s) =>
+                      s.id === selectedShift.id
+                        ? { ...s, expensesTotal, netValue }
+                        : s
+                    )
+                  );
+                }}
+              />
             </div>
           )}
         </DialogContent>

@@ -49,7 +49,8 @@ import {
 } from '@/components/ui/select';
 import api from '@/lib/api';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
-import { isMarketplaceShift } from '@/components/shifts/ShiftCard';
+import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
+import { isMarketplaceShift } from '@/components/shifts/shift-utils';
 
 interface Hospital {
   id: number;
@@ -75,6 +76,8 @@ interface Shift {
   hospital: Hospital;
   source?: string;
   opportunity_id?: number | null;
+  expenses_total?: number;
+  net_value?: number;
   created_at: string;
   updated_at: string;
 }
@@ -97,7 +100,7 @@ const History = () => {
   const [shiftToDelete, setShiftToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editShift, setEditShift] = useState<Shift | null>(null);
-  const [editData, setEditData] = useState<any>({});
+  const [editData, setEditData] = useState<Partial<Shift>>({});
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -228,16 +231,18 @@ const History = () => {
     document.body.removeChild(link);
   };
 
-  const handleEditChange = (field: string, value: any) => {
-    setEditData((prev: any) => ({ ...prev, [field]: value }));
+  const handleEditChange = <K extends keyof Shift>(field: K, value: Shift[K]) => {
+    setEditData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleEditSave = async () => {
     if (!editShift) return;
     setSavingEdit(true);
     try {
-      await api.updateShift(editShift.id, editData);
-      setShifts((prev) => prev.map((s) => s.id === editShift.id ? { ...s, ...editData } : s));
+      await api.updateShift(editShift.id, editData as Record<string, unknown>);
+      setShifts((prev) =>
+        prev.map((s) => (s.id === editShift.id ? { ...s, ...editData } : s))
+      );
       setEditShift(null);
       setEditData({});
       toast({ title: 'Plantão atualizado com sucesso!' });
@@ -397,7 +402,7 @@ const History = () => {
       </div>
 
       <Dialog open={!!selectedShift} onOpenChange={() => setSelectedShift(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes do plantão</DialogTitle>
             <DialogDescription>
@@ -448,7 +453,31 @@ const History = () => {
                       : 'A definir'}
                   </p>
                 </div>
+                {isMarketplaceShift(selectedShift) && (
+                  <div className="col-span-2">
+                    <Badge variant="secondary">Marketplace — plantão travado; gastos liberados</Badge>
+                  </div>
+                )}
               </div>
+
+              <ShiftExpensesSection
+                shiftId={selectedShift.id}
+                shiftValue={Number(selectedShift.value)}
+                onChanged={({ expensesTotal, netValue }) => {
+                  setSelectedShift((prev) =>
+                    prev
+                      ? { ...prev, expenses_total: expensesTotal, net_value: netValue }
+                      : prev
+                  );
+                  setShifts((prev) =>
+                    prev.map((s) =>
+                      s.id === selectedShift.id
+                        ? { ...s, expenses_total: expensesTotal, net_value: netValue }
+                        : s
+                    )
+                  );
+                }}
+              />
 
               <DialogFooter className="gap-2 sm:gap-0">
                 {selectedShift.status === 'scheduled' && (

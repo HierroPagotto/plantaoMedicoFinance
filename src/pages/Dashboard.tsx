@@ -4,24 +4,68 @@ import { FinancialChart } from '@/components/dashboard/FinancialChart';
 import { NextPaymentCard } from '@/components/dashboard/NextPaymentCard';
 import { MapPreview } from '@/components/dashboard/MapPreview';
 import { ShiftCalendar } from '@/components/dashboard/ShiftCalendar';
-import { ShiftTable } from '@/components/dashboard/ShiftTable';
-import { Calendar, Clock, DollarSign, MapPin, User, Settings as SettingsIcon } from 'lucide-react';
+/* import { ShiftTable } from '@/components/dashboard/ShiftTable';*/
+import { Calendar, Clock, DollarSign, User, Settings as SettingsIcon, Wallet } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
+import type { Shift } from '@/types/shift';
+import type { ShiftProps } from '@/components/shifts/ShiftCard';
+
+function mapApiShiftToProps(shift: Shift): ShiftProps {
+  return {
+    id: String(shift.id),
+    date: new Date(shift.date),
+    startTime: shift.start_time.substring(0, 5),
+    endTime: shift.end_time.substring(0, 5),
+    hospital: {
+      name: shift.hospital?.name || '',
+      address: shift.hospital?.address || '',
+    },
+    value: Number(shift.value).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }),
+    valueNumber: Number(shift.value),
+    expensesTotal: Number(shift.expenses_total || 0),
+    netValue:
+      shift.net_value != null
+        ? Number(shift.net_value)
+        : Number(shift.value) - Number(shift.expenses_total || 0),
+    specialty: shift.specialty,
+    paymentDate: shift.payment_date ? new Date(shift.payment_date) : null,
+    status: shift.status,
+    source: shift.source,
+    opportunityId: shift.opportunity_id ?? null,
+  };
+}
 
 const Dashboard = () => {
-  const [shifts, setShifts] = useState<any[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [stats, setStats] = useState({
     monthly_earnings: 0,
+    previous_month_earnings: 0,
+    expenses_total: 0,
+    previous_expenses_total: 0,
+    net: 0,
+    previous_net: 0,
     scheduled_shifts: 0,
+    previous_scheduled_shifts: 0,
     hours_worked: 0,
-    avg_hourly_rate: 0
+    previous_hours_worked: 0,
+    avg_hourly_rate: 0,
+    previous_avg_hourly_rate: 0,
   });
   const [goal, setGoal] = useState<{ value: number; custom: boolean } | null>(null);
   const navigate = useNavigate();
+
+  const calendarShifts = useMemo(
+    () => shifts.map(mapApiShiftToProps),
+    [shifts]
+  );
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -104,13 +148,38 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
         <StatCard
           title="Ganhos mensais"
           value={formatCurrency(stats.monthly_earnings)}
-          description="Valor recebido neste mês"
+          description="Valor previsto neste mês"
           icon={<DollarSign />}
           trend={getTrend(stats.monthly_earnings, stats.previous_month_earnings)}
+        />
+        <StatCard
+          title="Gastos do mês"
+          value={formatCurrency(stats.expenses_total || 0)}
+          description="Na data dos plantões"
+          icon={<Wallet />}
+          trend={getTrend(stats.expenses_total || 0, stats.previous_expenses_total || 0)}
+        />
+        <StatCard
+          title="Líquido"
+          value={formatCurrency(
+            stats.net != null
+              ? stats.net
+              : (stats.monthly_earnings || 0) - (stats.expenses_total || 0)
+          )}
+          description="Ganhos − gastos"
+          icon={<DollarSign />}
+          trend={getTrend(
+            stats.net != null
+              ? stats.net
+              : (stats.monthly_earnings || 0) - (stats.expenses_total || 0),
+            stats.previous_net != null
+              ? stats.previous_net
+              : (stats.previous_month_earnings || 0) - (stats.previous_expenses_total || 0)
+          )}
         />
         <StatCard
           title="Plantões"
@@ -134,7 +203,7 @@ const Dashboard = () => {
             const currentYear = now.getFullYear();
             const doneShifts = shifts.filter(shift => {
               const status = (shift.status || '').toLowerCase();
-              const dateObj = shift.date instanceof Date ? shift.date : new Date(shift.date);
+              const dateObj = new Date(shift.date);
               return (status === 'completed' || status === 'paid') &&
                 dateObj.getMonth() === currentMonth &&
                 dateObj.getFullYear() === currentYear;
@@ -142,7 +211,7 @@ const Dashboard = () => {
             let totalValue = 0;
             let totalHours = 0;
             for (const shift of doneShifts) {
-              let valor = typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : Number(shift.value);
+              const valor = Number(shift.value);
               if (!isNaN(valor)) totalValue += valor;
               let hours = 0;
               if (typeof shift.start_time === 'string' && typeof shift.end_time === 'string') {
@@ -220,9 +289,9 @@ const Dashboard = () => {
         <div className="md:col-span-3">
           <FinancialChart shifts={shifts
             .map((shift) => ({
-              paymentDate: new Date(shift.payment_date || shift.paymentDate),
+              paymentDate: new Date(shift.payment_date || ''),
               date: new Date(shift.date),
-              value: shift.value || shift.ganhos || 0,
+              value: shift.value,
               status: shift.status,
             }))
             .filter((shift) =>
@@ -237,7 +306,7 @@ const Dashboard = () => {
       </div>
 
       <div className="w-full mt-6">
-        <ShiftCalendar shifts={shifts} />
+        <ShiftCalendar shifts={calendarShifts} />
       </div>
 
       {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
