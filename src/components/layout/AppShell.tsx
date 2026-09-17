@@ -10,21 +10,19 @@ import {
   SidebarHeader,
   SidebarRail,
   SidebarInset,
-  SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Moon, Sun, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import Header from './Header';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 export const AppShell = ({ children }: AppShellProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
   const [user, setUser] = useState<{ name: string; specialty: string; photo_url?: string; is_admin?: boolean }>({
@@ -96,23 +94,26 @@ export const AppShell = ({ children }: AppShellProps) => {
   };
 
   return (
-    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen} defaultOpen={false}>
       <div className="flex h-screen w-screen bg-background">
-        <Sidebar className="md:block">
-          <SidebarHeader className="border-b border-border p-0 h-28 flex items-center justify-center">
-            <Link to="/dashboard" className="flex items-center w-full justify-center">
+        <Sidebar collapsible="icon" className="md:block">
+          <SidebarHeader className="border-b border-border p-0 h-28 flex items-center justify-center group-data-[collapsible=icon]:h-14">
+            <Link to="/dashboard" className="flex items-center w-full justify-center p-2">
               <img
                 src="/Logo.png"
                 alt="MedSinc Logo"
-                className="h-24 w-auto max-w-[80%] object-contain mx-auto"
+                className="h-24 w-auto max-w-[80%] object-contain mx-auto group-data-[collapsible=icon]:h-8"
               />
             </Link>
           </SidebarHeader>
 
           <SidebarHeader className="border-b border-border">
-            <div className="flex items-center p-2">
-              <Link to="/doctor-profile" className="flex items-center w-full">
-                <Avatar className="h-10 w-10">
+            <div className="flex items-center p-2 group-data-[collapsible=icon]:justify-center">
+              <Link
+                to="/doctor-profile"
+                className="flex items-center w-full group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:justify-center"
+              >
+                <Avatar className="h-10 w-10 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
                   {user.photo_url ? (
                     <AvatarImage src={user.photo_url} alt={user.name} />
                   ) : (
@@ -127,7 +128,7 @@ export const AppShell = ({ children }: AppShellProps) => {
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <div className="ml-3 overflow-hidden">
+                <div className="ml-3 overflow-hidden group-data-[collapsible=icon]:hidden">
                   <p className="font-medium truncate">{user.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{user.specialty}</p>
                 </div>
@@ -135,15 +136,18 @@ export const AppShell = ({ children }: AppShellProps) => {
             </div>
             <Button
               variant="ghost"
-              className="w-full justify-start mt-2 text-muted-foreground hover:text-foreground"
+              className="w-full justify-start mt-2 text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             >
               {theme === 'dark' ? (
-                <Sun className="h-5 w-5 mr-2" />
+                <Sun className="h-5 w-5 mr-2 group-data-[collapsible=icon]:mr-0" />
               ) : (
-                <Moon className="h-5 w-5 mr-2" />
+                <Moon className="h-5 w-5 mr-2 group-data-[collapsible=icon]:mr-0" />
               )}
-              <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
+              <span className="group-data-[collapsible=icon]:hidden">
+                {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              </span>
             </Button>
           </SidebarHeader>
 
@@ -168,12 +172,12 @@ export const AppShell = ({ children }: AppShellProps) => {
           <SidebarFooter>
             <Button
               variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:text-foreground"
+              className="w-full justify-start text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
               asChild
             >
-              <Link to="/logout">
-                <LogOut className="h-5 w-5 mr-3" />
-                <span>Sair</span>
+              <Link to="/logout" title="Sair">
+                <LogOut className="h-5 w-5 mr-3 group-data-[collapsible=icon]:mr-0" />
+                <span className="group-data-[collapsible=icon]:hidden">Sair</span>
               </Link>
             </Button>
           </SidebarFooter>
@@ -182,10 +186,7 @@ export const AppShell = ({ children }: AppShellProps) => {
         </Sidebar>
 
         <SidebarInset>
-          <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-          <div className="hidden md:flex items-center justify-end border-b border-border px-4 py-2">
-            <NotificationBell />
-          </div>
+          <Header />
           <main className="flex-1 overflow-auto p-4 md:p-6">
             {children}
           </main>
