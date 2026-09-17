@@ -503,10 +503,10 @@ const History = () => {
       </Dialog>
 
       <Dialog open={!!editShift} onOpenChange={() => setEditShift(null)}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar plantão</DialogTitle>
-            <DialogDescription>Altere os campos desejados e salve.</DialogDescription>
+            <DialogDescription>Altere os campos desejados e gerencie os gastos do plantão.</DialogDescription>
           </DialogHeader>
           {editShift && (
             <ShiftForm
@@ -514,7 +514,6 @@ const History = () => {
               initialData={editShift}
               onSuccess={() => {
                 setEditShift(null);
-                // Atualizar lista após edição
                 const fetchShifts = async () => {
                   try {
                     setLoading(true);
@@ -529,6 +528,20 @@ const History = () => {
                 fetchShifts();
               }}
               onCancel={() => setEditShift(null)}
+              onExpensesChanged={({ expensesTotal, netValue }) => {
+                setEditShift((prev) =>
+                  prev
+                    ? { ...prev, expenses_total: expensesTotal, net_value: netValue }
+                    : prev
+                );
+                setShifts((prev) =>
+                  prev.map((s) =>
+                    s.id === editShift.id
+                      ? { ...s, expenses_total: expensesTotal, net_value: netValue }
+                      : s
+                  )
+                );
+              }}
             />
           )}
         </DialogContent>

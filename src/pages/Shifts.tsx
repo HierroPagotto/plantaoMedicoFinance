@@ -342,16 +342,18 @@ const Shifts = () => {
           <>
             <div className="col-span-full flex items-center gap-2 mb-2">
               <Checkbox
-                checked={
-                  filteredShifts.filter((s) => !isMarketplaceShift(s)).length > 0 &&
-                  selectedIds.length ===
-                    filteredShifts.filter((s) => !isMarketplaceShift(s)).length
-                }
-                indeterminate={
-                  selectedIds.length > 0 &&
-                  selectedIds.length <
-                    filteredShifts.filter((s) => !isMarketplaceShift(s)).length
-                }
+                checked={(() => {
+                  const selectableCount = filteredShifts.filter(
+                    (s) => !isMarketplaceShift(s)
+                  ).length;
+                  if (selectableCount > 0 && selectedIds.length === selectableCount) {
+                    return true;
+                  }
+                  if (selectedIds.length > 0 && selectedIds.length < selectableCount) {
+                    return 'indeterminate';
+                  }
+                  return false;
+                })()}
                 onCheckedChange={checked => handleSelectAll(!!checked)}
                 id="select-all-shifts"
               />
@@ -459,10 +461,10 @@ const Shifts = () => {
       </Dialog>
       {/* Dialog de Edição */}
       <Dialog open={!!editShift} onOpenChange={() => setEditShift(null)}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar plantão</DialogTitle>
-            <DialogDescription>Altere os campos desejados e salve.</DialogDescription>
+            <DialogDescription>Altere os campos desejados e gerencie os gastos do plantão.</DialogDescription>
           </DialogHeader>
           {editShift && (
             <ShiftForm
@@ -470,10 +472,18 @@ const Shifts = () => {
               initialData={editShift}
               onSuccess={() => {
                 setEditShift(null);
-                // Atualizar lista após edição
-                // fetchShifts();
               }}
               onCancel={() => setEditShift(null)}
+              onExpensesChanged={({ expensesTotal, netValue }) => {
+                setEditShift((prev) =>
+                  prev ? { ...prev, expensesTotal, netValue } : prev
+                );
+                setShifts((prev) =>
+                  prev.map((s) =>
+                    s.id === editShift.id ? { ...s, expensesTotal, netValue } : s
+                  )
+                );
+              }}
             />
           )}
         </DialogContent>

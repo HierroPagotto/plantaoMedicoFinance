@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { HospitalSearch, type Hospital } from './HospitalSearch';
+import { ShiftExpensesSection } from './ShiftExpensesSection';
 import { api } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -81,32 +82,86 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface ShiftFormProps {
-  initialData?: any;
+  initialData?: {
+    id?: string | number;
+    date?: string | Date;
+    end_date?: string | Date;
+    endDate?: string | Date;
+    start_time?: string;
+    startTime?: string;
+    end_time?: string;
+    endTime?: string;
+    value?: string | number;
+    valueNumber?: number;
+    specialty?: string;
+    hospital_id?: string | number;
+    payment_date?: string | Date | null;
+    paymentDate?: string | Date | null;
+  };
   onSuccess?: () => void;
   onCancel?: () => void;
+  onExpensesChanged?: (summary: { expensesTotal: number; netValue: number }) => void;
   mode?: 'edit' | 'create';
 }
 
-export function ShiftForm({ initialData, onSuccess, onCancel, mode = 'create' }: ShiftFormProps) {
+function resolveShiftValue(data?: ShiftFormProps['initialData']): number | undefined {
+  if (!data) return undefined;
+  if (typeof data.valueNumber === 'number' && !Number.isNaN(data.valueNumber)) {
+    return data.valueNumber;
+  }
+  if (typeof data.value === 'number' && !Number.isNaN(data.value)) {
+    return data.value;
+  }
+  if (typeof data.value === 'string') {
+    const parsed = Number(
+      data.value.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')
+    );
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+export function ShiftForm({
+  initialData,
+  onSuccess,
+  onCancel,
+  onExpensesChanged,
+  mode = 'create',
+}: ShiftFormProps) {
   const [loading, setLoading] = useState(false);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const shiftId = initialData?.id;
+  const shiftValue = resolveShiftValue(initialData);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
       ? {
           shiftDate: initialData.date ? new Date(initialData.date) : undefined,
-          endDate: initialData.end_date ? new Date(initialData.end_date) : undefined,
-          startTime: initialData.start_time || '',
-          endTime: initialData.end_time || '',
-          value: initialData.value ? initialData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '',
+          endDate: initialData.end_date
+            ? new Date(initialData.end_date)
+            : initialData.endDate
+              ? new Date(initialData.endDate)
+              : undefined,
+          startTime: initialData.start_time || initialData.startTime || '',
+          endTime: initialData.end_time || initialData.endTime || '',
+          value:
+            typeof initialData.value === 'number'
+              ? initialData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+              : typeof initialData.value === 'string'
+                ? initialData.value.replace(/^R\$\s?/, '')
+                : '',
           specialty: initialData.specialty || '',
           hospital_id: initialData.hospital_id ? String(initialData.hospital_id) : '',
           multipleDates: false,
           selectedDates: undefined,
-          paymentDate: initialData.payment_date ? new Date(initialData.payment_date) : undefined,
+          paymentDate: initialData.payment_date
+            ? new Date(initialData.payment_date)
+            : initialData.paymentDate
+              ? new Date(initialData.paymentDate)
+              : undefined,
         }
       : {
           shiftDate: undefined,
@@ -124,7 +179,17 @@ export function ShiftForm({ initialData, onSuccess, onCancel, mode = 'create' }:
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      const shiftData: any = {
+      const shiftData: {
+        start_time: string;
+        end_time: string;
+        hospital_id: string;
+        value: number;
+        specialty: string;
+        payment_date: string;
+        date?: string;
+        end_date?: string;
+        week_days?: string[];
+      } = {
         start_time: data.startTime,
         end_time: data.endTime,
         hospital_id: data.hospital_id,
@@ -171,6 +236,7 @@ export function ShiftForm({ initialData, onSuccess, onCancel, mode = 'create' }:
   };
 
   return (
+    <div className="space-y-6">
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -554,5 +620,14 @@ export function ShiftForm({ initialData, onSuccess, onCancel, mode = 'create' }:
         )}
       </form>
     </Form>
+
+    {mode === 'edit' && shiftId != null && (
+      <ShiftExpensesSection
+        shiftId={shiftId}
+        shiftValue={shiftValue}
+        onChanged={onExpensesChanged}
+      />
+    )}
+    </div>
   );
 }
