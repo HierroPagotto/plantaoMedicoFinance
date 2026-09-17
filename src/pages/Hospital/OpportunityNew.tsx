@@ -8,7 +8,12 @@ import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  formatNumberToCurrencyInput,
+  parseCurrencyInput,
+} from '@/lib/currency';
 import {
   Form,
   FormControl,
@@ -44,7 +49,10 @@ const schema = z
       'technician',
     ]),
     specialty: z.string().min(1, 'Informe a especialidade'),
-    value: z.coerce.number().positive('Valor deve ser maior que zero'),
+    value: z
+      .string()
+      .min(1, 'Informe o valor')
+      .refine((v) => parseCurrencyInput(v) != null, 'Valor deve ser maior que zero'),
     payment_date: z.string().min(1, 'Informe a data prevista de pagamento'),
     city: z.string().optional(),
     slots_total: z.coerce.number().int().min(1, 'Pelo menos 1 vaga'),
@@ -83,7 +91,7 @@ const HospitalNewOpportunityPage = () => {
       end_time: '07:00',
       required_profession: 'doctor',
       specialty: 'Clínica médica',
-      value: 1400,
+      value: formatNumberToCurrencyInput(1400),
       payment_date: '',
       city: readHospitalCity(),
       slots_total: 1,
@@ -107,7 +115,7 @@ const HospitalNewOpportunityPage = () => {
         end_time: data.end_time.length === 5 ? `${data.end_time}:00` : data.end_time,
         required_profession: data.required_profession,
         specialty: data.specialty,
-        value: data.value,
+        value: parseCurrencyInput(data.value) ?? 0,
         payment_date: data.payment_date,
         city: data.city || undefined,
         slots_total: data.slots_total,
@@ -263,7 +271,11 @@ const HospitalNewOpportunityPage = () => {
                   <FormItem>
                     <FormLabel>Valor (R$)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <CurrencyInput
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="0,00"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

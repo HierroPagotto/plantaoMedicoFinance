@@ -11,7 +11,12 @@ import {
 } from '@/types/shift';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
+import {
+  formatNumberToCurrencyInput,
+  parseCurrencyInput,
+} from '@/lib/currency';
 import {
   Select,
   SelectContent,
@@ -32,13 +37,6 @@ function formatCurrency(value: number) {
     style: 'currency',
     currency: 'BRL',
   }).format(value);
-}
-
-function parseAmountInput(raw: string): number | null {
-  const normalized = raw.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
-  const value = Number(normalized);
-  if (!Number.isFinite(value) || value <= 0) return null;
-  return Math.round(value * 100) / 100;
 }
 
 interface ShiftExpensesSectionProps {
@@ -105,13 +103,13 @@ export function ShiftExpensesSection({
   const openEdit = (expense: ShiftExpense) => {
     setEditing(expense);
     setCategory((expense.category as ExpenseCategory) || 'other');
-    setAmount(String(expense.amount).replace('.', ','));
+    setAmount(formatNumberToCurrencyInput(Number(expense.amount)));
     setDescription(expense.description || '');
     setFormOpen(true);
   };
 
   const handleSave = async () => {
-    const parsed = parseAmountInput(amount);
+    const parsed = parseCurrencyInput(amount);
     if (!parsed) {
       toast.error('Informe um valor válido maior que zero');
       return;
@@ -263,11 +261,10 @@ export function ShiftExpensesSection({
             </div>
             <div className="space-y-2">
               <Label>Valor (R$)</Label>
-              <Input
+              <CurrencyInput
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onValueChange={setAmount}
                 placeholder="0,00"
-                inputMode="decimal"
               />
             </div>
             <div className="space-y-2">

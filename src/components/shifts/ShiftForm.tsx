@@ -34,7 +34,9 @@ import {
 import { HospitalSearch, type Hospital } from './HospitalSearch';
 import { ShiftExpensesSection } from './ShiftExpensesSection';
 import { api } from '@/lib/api';
+import { formatNumberToCurrencyInput, parseCurrencyInput } from '@/lib/currency';
 import { useNavigate } from 'react-router-dom';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 const specialties = [
   'Cardiologia',
@@ -113,10 +115,8 @@ function resolveShiftValue(data?: ShiftFormProps['initialData']): number | undef
     return data.value;
   }
   if (typeof data.value === 'string') {
-    const parsed = Number(
-      data.value.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')
-    );
-    return Number.isFinite(parsed) ? parsed : undefined;
+    const parsed = parseCurrencyInput(data.value);
+    return parsed ?? undefined;
   }
   return undefined;
 }
@@ -139,41 +139,41 @@ export function ShiftForm({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
       ? {
-          shiftDate: initialData.date ? new Date(initialData.date) : undefined,
-          endDate: initialData.end_date
-            ? new Date(initialData.end_date)
-            : initialData.endDate
-              ? new Date(initialData.endDate)
-              : undefined,
-          startTime: initialData.start_time || initialData.startTime || '',
-          endTime: initialData.end_time || initialData.endTime || '',
-          value:
-            typeof initialData.value === 'number'
-              ? initialData.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-              : typeof initialData.value === 'string'
-                ? initialData.value.replace(/^R\$\s?/, '')
-                : '',
-          specialty: initialData.specialty || '',
-          hospital_id: initialData.hospital_id ? String(initialData.hospital_id) : '',
-          multipleDates: false,
-          selectedDates: undefined,
-          paymentDate: initialData.payment_date
-            ? new Date(initialData.payment_date)
-            : initialData.paymentDate
-              ? new Date(initialData.paymentDate)
-              : undefined,
-        }
+        shiftDate: initialData.date ? new Date(initialData.date) : undefined,
+        endDate: initialData.end_date
+          ? new Date(initialData.end_date)
+          : initialData.endDate
+            ? new Date(initialData.endDate)
+            : undefined,
+        startTime: initialData.start_time || initialData.startTime || '',
+        endTime: initialData.end_time || initialData.endTime || '',
+        value:
+          shiftValue != null
+            ? formatNumberToCurrencyInput(shiftValue)
+            : typeof initialData.value === 'string'
+              ? initialData.value.replace(/^R\$\s?/, '')
+              : '',
+        specialty: initialData.specialty || '',
+        hospital_id: initialData.hospital_id ? String(initialData.hospital_id) : '',
+        multipleDates: false,
+        selectedDates: undefined,
+        paymentDate: initialData.payment_date
+          ? new Date(initialData.payment_date)
+          : initialData.paymentDate
+            ? new Date(initialData.paymentDate)
+            : undefined,
+      }
       : {
-          shiftDate: undefined,
-          startTime: '',
-          endTime: '',
-          value: '',
-          specialty: '',
-          hospital_id: '',
-          multipleDates: false,
-          selectedDates: [],
-          paymentDate: undefined,
-        },
+        shiftDate: undefined,
+        startTime: '',
+        endTime: '',
+        value: '',
+        specialty: '',
+        hospital_id: '',
+        multipleDates: false,
+        selectedDates: [],
+        paymentDate: undefined,
+      },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -193,7 +193,7 @@ export function ShiftForm({
         start_time: data.startTime,
         end_time: data.endTime,
         hospital_id: data.hospital_id,
-        value: parseFloat(data.value.replace(/\./g, '').replace(',', '.')),
+        value: parseCurrencyInput(data.value) ?? 0,
         specialty: data.specialty,
         payment_date: format(data.paymentDate, 'yyyy-MM-dd'),
       };
@@ -237,160 +237,67 @@ export function ShiftForm({
 
   return (
     <div className="space-y-6">
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="multipleDates"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Selecionar múltiplas datas</FormLabel>
-                    <FormDescription>
-                      Ative para selecionar várias datas específicas para o plantão
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="multipleDates"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Selecionar múltiplas datas</FormLabel>
+                      <FormDescription>
+                        Ative para selecionar várias datas específicas para o plantão
+                      </FormDescription>
                     </div>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                    <FormControl>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
-            {!form.watch("multipleDates") ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="shiftDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Data do plantão</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP", { locale: ptBR })
-                              ) : (
-                                <span>Selecione uma data</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                            locale={ptBR}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Data final (opcional)</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP", { locale: ptBR })
-                              ) : (
-                                <span>Selecione uma data final</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value || undefined}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < (form.getValues().shiftDate || new Date("1900-01-01"))
-                            }
-                            initialFocus
-                            locale={ptBR}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="selectedDates"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex justify-between items-center">
-                        <FormLabel>Datas selecionadas</FormLabel>
+              {!form.watch("multipleDates") ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="shiftDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data do plantão</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              <Plus className="h-4 w-4" />
-                              Adicionar data
-                            </Button>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: ptBR })
+                                ) : (
+                                  <span>Selecione uma data</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={undefined}
-                              onSelect={(date) => {
-                                if (date) {
-                                  const currentDates = field.value || [];
-                                  const dateExists = currentDates.some(d =>
-                                    format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-                                  );
-
-                                  if (!dateExists) {
-                                    field.onChange([...currentDates, date]);
-                                  }
-                                }
-                              }}
+                              selected={field.value}
+                              onSelect={field.onChange}
                               disabled={(date) =>
                                 date < new Date("1900-01-01")
                               }
@@ -399,120 +306,213 @@ export function ShiftForm({
                             />
                           </PopoverContent>
                         </Popover>
-                      </div>
-                      <div className="space-y-2 mt-2">
-                        {field.value && field.value.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {field.value.map((day, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-1 bg-secondary text-secondary-foreground px-3 py-1 rounded-md"
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data final (opcional)</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
                               >
-                                {format(day, "dd/MM/yyyy")}
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => {
-                                    const newDays = [...field.value || []];
-                                    newDays.splice(index, 1);
-                                    field.onChange(newDays);
-                                  }}
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: ptBR })
+                                ) : (
+                                  <span>Selecione uma data final</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value || undefined}
+                              onSelect={field.onChange}
+                              disabled={(date) =>
+                                date < (form.getValues().shiftDate || new Date("1900-01-01"))
+                              }
+                              initialFocus
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="selectedDates"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex justify-between items-center">
+                          <FormLabel>Datas selecionadas</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-1"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Adicionar data
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    const currentDates = field.value || [];
+                                    const dateExists = currentDates.some(d =>
+                                      format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+                                    );
+
+                                    if (!dateExists) {
+                                      field.onChange([...currentDates, date]);
+                                    }
+                                  }
+                                }}
+                                disabled={(date) =>
+                                  date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                                locale={ptBR}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="space-y-2 mt-2">
+                          {field.value && field.value.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {field.value.map((day, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-1 bg-secondary text-secondary-foreground px-3 py-1 rounded-md"
                                 >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-muted-foreground text-sm p-2 border rounded-md">
-                            Nenhuma data selecionada. Adicione pelo menos uma data.
-                          </div>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-          </div>
+                                  {format(day, "dd/MM/yyyy")}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={() => {
+                                      const newDays = [...field.value || []];
+                                      newDays.splice(index, 1);
+                                      field.onChange(newDays);
+                                    }}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground text-sm p-2 border rounded-md">
+                              Nenhuma data selecionada. Adicione pelo menos uma data.
+                            </div>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
 
-          <div className="space-y-4">
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora de início</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          type="time"
+                          placeholder="Hora de início"
+                          {...field}
+                        />
+                      </FormControl>
+                      <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora de término</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          type="time"
+                          placeholder="Hora de término"
+                          {...field}
+                        />
+                      </FormControl>
+                      <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name="startTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hora de início</FormLabel>
-                  <div className="relative">
+              name="hospital_id"
+              render={({ field }) => {
+                const selectedHospital = field.value
+                  ? hospitals.find(h => h && h.id && h.id.toString() === field.value)
+                  : null;
+
+                return (
+                  <FormItem className="col-span-1 md:col-span-2">
+                    <FormLabel>Hospital / Clínica</FormLabel>
                     <FormControl>
-                      <Input
-                        type="time"
-                        placeholder="Hora de início"
-                        {...field}
+                      <HospitalSearch
+                        value={selectedHospital || null}
+                        onChange={(hospital: Hospital) => {
+                          if (!hospitals.some(h => h.id === hospital.id)) {
+                            setHospitals([...hospitals, hospital]);
+                          }
+                          field.onChange(hospital.id.toString());
+                        }}
+                        onSearchResults={(results) => {
+                          setHospitals(results);
+                        }}
                       />
                     </FormControl>
-                    <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
-
-            <FormField
-              control={form.control}
-              name="endTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hora de término</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type="time"
-                        placeholder="Hora de término"
-                        {...field}
-                      />
-                    </FormControl>
-                    <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="hospital_id"
-            render={({ field }) => {
-              const selectedHospital = field.value
-                ? hospitals.find(h => h && h.id && h.id.toString() === field.value)
-                : null;
-
-              return (
-                <FormItem className="col-span-1 md:col-span-2">
-                  <FormLabel>Hospital / Clínica</FormLabel>
-                  <FormControl>
-                    <HospitalSearch
-                      value={selectedHospital || null}
-                      onChange={(hospital: Hospital) => {
-                        if (!hospitals.some(h => h.id === hospital.id)) {
-                          setHospitals([...hospitals, hospital]);
-                        }
-                        field.onChange(hospital.id.toString());
-                      }}
-                      onSearchResults={(results) => {
-                        setHospitals(results);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              );
-            }}
-          />
 
           <FormField
             control={form.control}
@@ -521,17 +521,10 @@ export function ShiftForm({
               <FormItem>
                 <FormLabel>Valor do plantão (R$)</FormLabel>
                 <FormControl>
-                  <Input
-                    type="text"
+                  <CurrencyInput
                     placeholder="0,00"
-                    {...field}
-                    onChange={(e) => {
-                      const value = e.target.value
-                        .replace(/\D/g, '')
-                        .replace(/(\d)(\d{2})$/, '$1,$2')
-                        .replace(/(?=(\d{3})+(\D))\B/g, '.');
-                      field.onChange(value);
-                    }}
+                    value={field.value}
+                    onValueChange={field.onChange}
                   />
                 </FormControl>
                 <FormMessage />
@@ -539,95 +532,95 @@ export function ShiftForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="specialty"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Especialidade do plantão</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a especialidade" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {specialties.map((specialty) => (
-                      <SelectItem key={specialty} value={specialty}>
-                        {specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="paymentDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data prevista para pagamento</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
+            <FormField
+              control={form.control}
+              name="specialty"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Especialidade do plantão</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(field.value, "PPP", { locale: ptBR })
-                        ) : (
-                          <span>Selecione uma data</span>
-                        )}
-                      </Button>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a especialidade" />
+                      </SelectTrigger>
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                      locale={ptBR}
-                      className="p-3"
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                    <SelectContent>
+                      {specialties.map((specialty) => (
+                        <SelectItem key={specialty} value={specialty}>
+                          {specialty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <Button
-          type="submit"
-          className="w-full md:w-auto"
-          disabled={loading}
-        >
-          {loading ? (mode === 'edit' ? 'Salvando...' : 'Registrando...') : (mode === 'edit' ? 'Salvar alterações' : 'Registrar plantão')}
-        </Button>
-        {mode === 'edit' && onCancel && (
-          <Button type="button" variant="ghost" className="w-full md:w-auto ml-2" onClick={onCancel} disabled={loading}>
-            Cancelar
+            <FormField
+              control={form.control}
+              name="paymentDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Data prevista para pagamento</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? (
+                            format(field.value, "PPP", { locale: ptBR })
+                          ) : (
+                            <span>Selecione uma data</span>
+                          )}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                        locale={ptBR}
+                        className="p-3"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full md:w-auto"
+            disabled={loading}
+          >
+            {loading ? (mode === 'edit' ? 'Salvando...' : 'Registrando...') : (mode === 'edit' ? 'Salvar alterações' : 'Registrar plantão')}
           </Button>
-        )}
-      </form>
-    </Form>
+          {mode === 'edit' && onCancel && (
+            <Button type="button" variant="ghost" className="w-full md:w-auto ml-2" onClick={onCancel} disabled={loading}>
+              Cancelar
+            </Button>
+          )}
+        </form>
+      </Form>
 
-    {mode === 'edit' && shiftId != null && (
-      <ShiftExpensesSection
-        shiftId={shiftId}
-        shiftValue={shiftValue}
-        onChanged={onExpensesChanged}
-      />
-    )}
+      {mode === 'edit' && shiftId != null && (
+        <ShiftExpensesSection
+          shiftId={shiftId}
+          shiftValue={shiftValue}
+          onChanged={onExpensesChanged}
+        />
+      )}
     </div>
   );
 }

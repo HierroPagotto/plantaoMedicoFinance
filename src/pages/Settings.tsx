@@ -14,6 +14,11 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import api from '@/lib/api';
+import {
+  formatNumberToCurrencyInput,
+  parseCurrencyInput,
+} from '@/lib/currency';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
@@ -95,15 +100,21 @@ const Settings = () => {
     const fetchGoals = async () => {
       try {
         const def = await api.getGoal(0, 0);
-        setGoalDefault(def.value ? String(def.value) : '');
+        setGoalDefault(def.value ? formatNumberToCurrencyInput(Number(def.value)) : '');
         setGoalDefaultSaved(def.value || null);
         const cur = await api.getGoal(year, month);
-        setGoalMonth(cur.value ? String(cur.value) : '');
+        setGoalMonth(cur.value ? formatNumberToCurrencyInput(Number(cur.value)) : '');
         setGoalMonthSaved(cur.custom ? cur.value : null);
         setGoalMonthCustom(cur.custom);
-        const list = await api.listGoals();
-        setGoalsList(list.filter((g: any) => !(g.year === 0 && g.month === 0)));
-      } catch {}
+        const list = (await api.listGoals()) as {
+          year: number;
+          month: number;
+          value: number;
+        }[];
+        setGoalsList(list.filter((g) => !(g.year === 0 && g.month === 0)));
+      } catch {
+        // ignore goal load errors
+      }
     };
     fetchGoals();
   }, [year, month]);
@@ -118,16 +129,26 @@ const Settings = () => {
 
   const saveGoalDefault = async () => {
     try {
-      await api.setGoal(0, 0, Number(goalDefault));
-      setGoalDefaultSaved(Number(goalDefault));
+      const value = parseCurrencyInput(goalDefault);
+      if (value == null) {
+        toast.error('Informe um valor válido maior que zero');
+        return;
+      }
+      await api.setGoal(0, 0, value);
+      setGoalDefaultSaved(value);
       toast.success('Meta padrão salva!');
     } catch { toast.error('Erro ao salvar meta padrão'); }
   };
   const saveGoalMonth = async () => {
     try {
       if (!goalMonth) return;
-      await api.setGoal(year, month, Number(goalMonth));
-      setGoalMonthSaved(Number(goalMonth));
+      const value = parseCurrencyInput(goalMonth);
+      if (value == null) {
+        toast.error('Informe um valor válido maior que zero');
+        return;
+      }
+      await api.setGoal(year, month, value);
+      setGoalMonthSaved(value);
       setGoalMonthCustom(true);
       toast.success('Meta personalizada salva!');
     } catch { toast.error('Erro ao salvar meta personalizada'); }
@@ -199,7 +220,7 @@ const Settings = () => {
         navigate('/login', { replace: true });
         return;
       }
-    } catch (error: any) {
+    } catch {
       toast.error("Erro ao atualizar perfil");
     } finally {
       setSaving(false);
@@ -329,11 +350,10 @@ const Settings = () => {
               <div>
                 <Label className="font-semibold flex items-center gap-2"><span className="text-lg">$</span> Meta mensal padrão</Label>
                 <div className="flex gap-2 mt-2">
-                  <Input
-                    type="number"
+                  <CurrencyInput
                     value={goalDefault}
-                    onChange={e => setGoalDefault(e.target.value)}
-                    placeholder="Ex: 8000"
+                    onValueChange={setGoalDefault}
+                    placeholder="0,00"
                   />
                   <Button onClick={saveGoalDefault} disabled={!goalDefault}>Salvar</Button>
                 </div>
@@ -344,11 +364,10 @@ const Settings = () => {
               <div>
                 <Label className="font-semibold flex items-center gap-2">Meta para {monthName.charAt(0).toUpperCase() + monthName.slice(1)} {year} {goalMonthCustom && <span className="ml-2 px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-semibold">Personalizada</span>}</Label>
                 <div className="flex gap-2 mt-2">
-                  <Input
-                    type="number"
+                  <CurrencyInput
                     value={goalMonth}
-                    onChange={e => setGoalMonth(e.target.value)}
-                    placeholder="Ex: 10000"
+                    onValueChange={setGoalMonth}
+                    placeholder="0,00"
                   />
                   <Button onClick={saveGoalMonth} disabled={!goalMonth}>Salvar</Button>
                   {goalMonthCustom && <Button variant="outline" onClick={removeGoalMonth}>Remover</Button>}

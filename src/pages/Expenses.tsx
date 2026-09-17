@@ -8,6 +8,11 @@ import { AppShell } from '@/components/layout/AppShell';
 import { PageLoading } from '@/components/ui/PageLoading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
+import {
+  formatNumberToCurrencyInput,
+  parseCurrencyInput,
+} from '@/lib/currency';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,13 +63,6 @@ function formatDate(value: string) {
   const d = new Date(`${value}T12:00:00`);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString('pt-BR');
-}
-
-function parseAmountInput(raw: string): number | null {
-  const normalized = raw.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
-  const value = Number(normalized);
-  if (!Number.isFinite(value) || value <= 0) return null;
-  return Math.round(value * 100) / 100;
 }
 
 function todayISO() {
@@ -126,14 +124,14 @@ const Expenses = () => {
     if (expense.source !== 'personal') return;
     setEditing(expense);
     setCategory((expense.category as PersonalExpenseCategory) || 'other');
-    setAmount(String(expense.amount).replace('.', ','));
+    setAmount(formatNumberToCurrencyInput(Number(expense.amount)));
     setExpenseDate(expense.expense_date?.slice(0, 10) || todayISO());
     setDescription(expense.description || '');
     setFormOpen(true);
   };
 
   const handleSave = async () => {
-    const parsedAmount = parseAmountInput(amount);
+    const parsedAmount = parseCurrencyInput(amount);
     if (parsedAmount == null) {
       toast.error('Informe um valor válido maior que zero');
       return;
@@ -347,11 +345,10 @@ const Expenses = () => {
             </div>
             <div className="space-y-2">
               <Label>Valor</Label>
-              <Input
+              <CurrencyInput
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onValueChange={setAmount}
                 placeholder="0,00"
-                inputMode="decimal"
               />
             </div>
             <div className="space-y-2">
