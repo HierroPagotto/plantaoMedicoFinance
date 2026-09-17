@@ -2,17 +2,27 @@ import { AppShell } from '@/components/layout/AppShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { FinancialChart } from '@/components/dashboard/FinancialChart';
 import { NextPaymentCard } from '@/components/dashboard/NextPaymentCard';
-import { MapPreview } from '@/components/dashboard/MapPreview';
 import { ShiftCalendar } from '@/components/dashboard/ShiftCalendar';
-/* import { ShiftTable } from '@/components/dashboard/ShiftTable';*/
 import { Calendar, Clock, DollarSign, User, Settings as SettingsIcon, Wallet } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
 import type { Shift } from '@/types/shift';
 import type { ShiftProps } from '@/components/shifts/ShiftCard';
+import { isMarketplaceShift } from '@/components/shifts/shift-utils';
+import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
+import { ShiftForm } from '@/components/shifts/ShiftForm';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { formatShortDate } from '@/lib/date-utils';
 
 function mapApiShiftToProps(shift: Shift): ShiftProps {
   return {
@@ -60,12 +70,23 @@ const Dashboard = () => {
     previous_avg_hourly_rate: 0,
   });
   const [goal, setGoal] = useState<{ value: number; custom: boolean } | null>(null);
+  const [selectedShift, setSelectedShift] = useState<ShiftProps | null>(null);
+  const [editShift, setEditShift] = useState<ShiftProps | null>(null);
   const navigate = useNavigate();
 
   const calendarShifts = useMemo(
     () => shifts.map(mapApiShiftToProps),
     [shifts]
   );
+
+  const refreshShifts = async () => {
+    try {
+      const data = await api.getShifts();
+      setShifts(data);
+    } catch (error) {
+      console.error('Erro ao buscar plantões:', error);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -218,7 +239,7 @@ const Dashboard = () => {
                 const [sh, sm] = shift.start_time.split(':').map(Number);
                 const [eh, em] = shift.end_time.split(':').map(Number);
                 if (!isNaN(sh) && !isNaN(sm) && !isNaN(eh) && !isNaN(em)) {
-                  let diff = (eh + em/60) - (sh + sm/60);
+                  let diff = (eh + em / 60) - (sh + sm / 60);
                   if (diff < 0) diff += 24;
                   hours = diff;
                 }
@@ -293,6 +314,7 @@ const Dashboard = () => {
               date: new Date(shift.date),
               value: shift.value,
               status: shift.status,
+              expensesTotal: Number(shift.expenses_total || 0),
             }))
             .filter((shift) =>
               shift.date && !isNaN(shift.date.getTime()) &&
@@ -306,13 +328,130 @@ const Dashboard = () => {
       </div>
 
       <div className="w-full mt-6">
-        <ShiftCalendar shifts={calendarShifts} />
+        <ShiftCalendar
+          shifts={calendarShifts}
+          onShowDetails={setSelectedShift}
+          onEdit={setEditShift}
+        />
       </div>
 
-      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <ShiftTable shifts={shifts} />
-      </div> */}
+      <Dialog open={!!selectedShift} onOpenChange={() => setSelectedShift(null)}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do plantão</DialogTitle>
+            <DialogDescription>
+              Informações completas sobre o plantão
+            </DialogDescription>
+          </DialogHeader>
+          {selectedShift && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Data</h4>
+                  <p>{formatShortDate(selectedShift.date)}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Horário</h4>
+                  <p>
+                    {selectedShift.startTime} - {selectedShift.endTime}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Hospital</h4>
+                  <p>{selectedShift.hospital.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedShift.hospital.address}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Especialidade</h4>
+                  <p>{selectedShift.specialty}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Valor</h4>
+                  <p className="font-medium">{selectedShift.value}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    Data para pagamento
+                  </h4>
+                  <p>
+                    {selectedShift.paymentDate &&
+                    !Number.isNaN(selectedShift.paymentDate.getTime())
+                      ? formatShortDate(selectedShift.paymentDate)
+                      : 'A definir'}
+                  </p>
+                </div>
+                {isMarketplaceShift(selectedShift) && (
+                  <div className="col-span-2">
+                    <Badge variant="secondary">
+                      Marketplace — plantão travado; gastos liberados
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              <ShiftExpensesSection
+                shiftId={selectedShift.id}
+                shiftValue={selectedShift.valueNumber}
+                onChanged={({ expensesTotal, netValue }) => {
+                  setSelectedShift((prev) =>
+                    prev ? { ...prev, expensesTotal, netValue } : prev
+                  );
+                  setShifts((prev) =>
+                    prev.map((s) =>
+                      String(s.id) === selectedShift.id
+                        ? {
+                            ...s,
+                            expenses_total: expensesTotal,
+                            net_value: netValue,
+                          }
+                        : s
+                    )
+                  );
+                }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
+      <Dialog open={!!editShift} onOpenChange={() => setEditShift(null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar plantão</DialogTitle>
+            <DialogDescription>
+              Altere os campos desejados e gerencie os gastos do plantão.
+            </DialogDescription>
+          </DialogHeader>
+          {editShift && (
+            <ShiftForm
+              mode="edit"
+              initialData={editShift}
+              onSuccess={() => {
+                setEditShift(null);
+                refreshShifts();
+              }}
+              onCancel={() => setEditShift(null)}
+              onExpensesChanged={({ expensesTotal, netValue }) => {
+                setEditShift((prev) =>
+                  prev ? { ...prev, expensesTotal, netValue } : prev
+                );
+                setShifts((prev) =>
+                  prev.map((s) =>
+                    String(s.id) === editShift.id
+                      ? {
+                          ...s,
+                          expenses_total: expensesTotal,
+                          net_value: netValue,
+                        }
+                      : s
+                  )
+                );
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 };

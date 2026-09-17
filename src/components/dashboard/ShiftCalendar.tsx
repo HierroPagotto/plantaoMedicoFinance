@@ -4,15 +4,18 @@ import { formatISODate, formatMonthDate } from '@/lib/date-utils';
 import { ptBR } from 'date-fns/locale';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ShiftProps, ShiftCard } from '@/components/shifts/ShiftCard';
+import { type ShiftProps, ShiftCard } from '@/components/shifts/ShiftCard';
+import { isMarketplaceShift } from '@/components/shifts/shift-utils';
 
 interface ShiftCalendarProps {
   shifts: ShiftProps[];
+  onShowDetails?: (shift: ShiftProps) => void;
+  onEdit?: (shift: ShiftProps) => void;
 }
 
-export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
+export function ShiftCalendar({ shifts, onShowDetails, onEdit }: ShiftCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  
+
   const shiftDates = shifts.reduce<Record<string, boolean>>((acc, shift) => {
     const dateStr = formatISODate(shift.date);
     acc[dateStr] = true;
@@ -20,7 +23,7 @@ export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
   }, {});
 
   const shiftsForSelectedDate = selectedDate
-    ? shifts.filter(shift => formatISODate(shift.date) === formatISODate(selectedDate))
+    ? shifts.filter((shift) => formatISODate(shift.date) === formatISODate(selectedDate))
     : [];
 
   return (
@@ -35,13 +38,13 @@ export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              className={cn("p-3 rounded-md border pointer-events-auto w-full")}
+              className={cn('p-3 rounded-md border pointer-events-auto w-full')}
               locale={ptBR}
               modifiers={{
                 highlighted: (date) => {
                   const dateStr = formatISODate(date);
                   return shiftDates[dateStr] || false;
-                }
+                },
               }}
               modifiersStyles={{
                 highlighted: {
@@ -49,7 +52,7 @@ export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
                   backgroundColor: 'rgba(14, 165, 233, 0.1)',
                   color: '#0EA5E9',
                   borderRadius: '4px',
-                }
+                },
               }}
             />
           </div>
@@ -60,11 +63,23 @@ export function ShiftCalendar({ shifts }: ShiftCalendarProps) {
                 ? `Plantões em ${formatMonthDate(selectedDate)}`
                 : 'Nenhuma data selecionada'}
             </h3>
-            
+
             {shiftsForSelectedDate.length > 0 ? (
               <div className="space-y-2">
                 {shiftsForSelectedDate.map((shift) => (
-                  <ShiftCard key={shift.id} shift={shift} compact />
+                  <ShiftCard
+                    key={shift.id}
+                    shift={shift}
+                    compact
+                    onShowDetails={
+                      onShowDetails ? () => onShowDetails(shift) : undefined
+                    }
+                    onEdit={
+                      onEdit && !isMarketplaceShift(shift)
+                        ? () => onEdit(shift)
+                        : undefined
+                    }
+                  />
                 ))}
               </div>
             ) : (

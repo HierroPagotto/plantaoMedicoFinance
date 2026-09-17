@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AreaChart,
   Area,
@@ -13,68 +12,76 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { api } from '@/lib/api';
 
 const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-interface MonthlyData {
-  month: number;
-  expected: number;
-  shifts: number;
-  avg_per_shift: number;
-}
+type ChartType = 'revenue' | 'expenses' | 'shifts';
 
 interface FinancialChartProps {
   shifts?: Array<{
     paymentDate: Date;
-    date?: Date; // Corrigido para incluir o campo date opcional
+    date?: Date;
     value: string | number;
     status: string;
+    expensesTotal?: number;
   }>;
 }
 
+function parseValue(value: string | number): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const parsed = Number(value.replace(/[^\d,.-]/g, '').replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function FinancialChart({ shifts }: FinancialChartProps) {
-  const [data, setData] = useState<{ month: string; ganhos: number; plantoes: number }[]>([]);
-  const [chartType, setChartType] = useState('revenue');
+  const [data, setData] = useState<
+    Array<{ month: string; ganhos: number; gastos: number; plantoes: number }>
+  >([]);
+  const [chartType, setChartType] = useState<ChartType>('revenue');
 
   useEffect(() => {
     if (!shifts) return;
-    const monthlyMap: Record<string, { ganhos: number; plantoes: number }> = {};
-    const minYear = new Date().getFullYear();
-    const maxYear = new Date().getFullYear();
+    const monthlyMap: Record<
+      string,
+      { ganhos: number; gastos: number; plantoes: number }
+    > = {};
 
-    shifts.forEach(shift => {
-      const paymentDate = shift.paymentDate && !isNaN(new Date(shift.paymentDate).getTime()) ? new Date(shift.paymentDate) : null;
-      const shiftDate = shift.date && !isNaN(new Date(shift.date).getTime()) ? new Date(shift.date) : null;
+    shifts.forEach((shift) => {
+      const paymentDate =
+        shift.paymentDate && !isNaN(new Date(shift.paymentDate).getTime())
+          ? new Date(shift.paymentDate)
+          : null;
+      const shiftDate =
+        shift.date && !isNaN(new Date(shift.date).getTime())
+          ? new Date(shift.date)
+          : null;
+
       if (paymentDate) {
-        const month = paymentDate.getMonth();
-        const year = paymentDate.getFullYear();
-        const key = `${year}-${month}`;
-        let valor = typeof shift.value === 'string' ? Number(shift.value.replace(/[^\d,.-]/g, '').replace(',', '.')) : shift.value;
-        if (isNaN(valor)) valor = 0;
+        const key = `${paymentDate.getFullYear()}-${paymentDate.getMonth()}`;
         if (!monthlyMap[key]) {
-          monthlyMap[key] = { ganhos: 0, plantoes: 0 };
+          monthlyMap[key] = { ganhos: 0, gastos: 0, plantoes: 0 };
         }
-        monthlyMap[key].ganhos += valor;
+        monthlyMap[key].ganhos += parseValue(shift.value);
       }
+
       if (shiftDate) {
-        const month = shiftDate.getMonth();
-        const year = shiftDate.getFullYear();
-        const key = `${year}-${month}`;
+        const key = `${shiftDate.getFullYear()}-${shiftDate.getMonth()}`;
         if (!monthlyMap[key]) {
-          monthlyMap[key] = { ganhos: 0, plantoes: 0 };
+          monthlyMap[key] = { ganhos: 0, gastos: 0, plantoes: 0 };
         }
         monthlyMap[key].plantoes += 1;
+        monthlyMap[key].gastos += Number(shift.expensesTotal || 0);
       }
     });
 
     const currentYear = new Date().getFullYear();
-    const fullData: Array<{ month: string; ganhos: number; plantoes: number }> = [];
+    const fullData = [];
     for (let month = 0; month < 12; month++) {
       const key = `${currentYear}-${month}`;
       fullData.push({
         month: months[month],
         ganhos: monthlyMap[key]?.ganhos || 0,
+        gastos: monthlyMap[key]?.gastos || 0,
         plantoes: monthlyMap[key]?.plantoes || 0,
       });
     }
@@ -89,31 +96,42 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
     }).format(value);
   };
 
+  const tabClass = (active: boolean) =>
+    `px-3 py-1 rounded-md text-sm font-medium focus:outline-none transition-colors ${active
+      ? 'bg-white shadow text-black'
+      : 'text-muted-foreground hover:text-black'
+    }`;
+
   return (
     <Card className="col-span-1 md:col-span-2">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2 flex-wrap">
         <CardTitle>Visão financeira</CardTitle>
-        <div className="flex items-center space-x-2">
-          <div className="flex bg-muted rounded-md p-1">
-            <button
-              className={`px-3 py-1 rounded-md text-sm font-medium focus:outline-none transition-colors ${chartType === 'revenue' ? 'bg-white shadow text-black' : 'text-muted-foreground hover:text-black'}`}
-              onClick={() => setChartType('revenue')}
-              type="button"
-            >
-              Ganhos
-            </button>
-            <button
-              className={`px-3 py-1 rounded-md text-sm font-medium focus:outline-none transition-colors ${chartType === 'shifts' ? 'bg-white shadow text-black' : 'text-muted-foreground hover:text-black'}`}
-              onClick={() => setChartType('shifts')}
-              type="button"
-            >
-              Plantões
-            </button>
-          </div>
+        <div className="flex bg-muted rounded-md p-1">
+          <button
+            className={tabClass(chartType === 'revenue')}
+            onClick={() => setChartType('revenue')}
+            type="button"
+          >
+            Ganhos
+          </button>
+          <button
+            className={tabClass(chartType === 'expenses')}
+            onClick={() => setChartType('expenses')}
+            type="button"
+          >
+            Gastos
+          </button>
+          <button
+            className={tabClass(chartType === 'shifts')}
+            onClick={() => setChartType('shifts')}
+            type="button"
+          >
+            Plantões
+          </button>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        {chartType === 'revenue' ? (
+        {chartType === 'revenue' && (
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart
               data={data}
@@ -123,7 +141,7 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
               <XAxis dataKey="month" />
               <YAxis tickFormatter={formatCurrency} width={80} />
               <Tooltip
-                formatter={(value: number) => [formatCurrency(value), ""]}
+                formatter={(value: number) => [formatCurrency(value), '']}
                 labelFormatter={(label) => `Mês: ${label}`}
               />
               <Legend />
@@ -138,7 +156,36 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
               />
             </AreaChart>
           </ResponsiveContainer>
-        ) : (
+        )}
+
+        {chartType === 'expenses' && (
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart
+              data={data}
+              margin={{ top: 10, right: 30, left: 24, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <XAxis dataKey="month" />
+              <YAxis tickFormatter={formatCurrency} width={80} />
+              <Tooltip
+                formatter={(value: number) => [formatCurrency(value), '']}
+                labelFormatter={(label) => `Mês: ${label}`}
+              />
+              <Legend />
+              <Area
+                type="monotone"
+                dataKey="gastos"
+                name="Gastos"
+                stroke="#F59E0B"
+                fill="#f59e0b20"
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+
+        {chartType === 'shifts' && (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={data}
@@ -148,7 +195,7 @@ export function FinancialChart({ shifts }: FinancialChartProps) {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip
-                formatter={(value: number) => [`${value} plantões`, "Quantidade"]}
+                formatter={(value: number) => [`${value} plantões`, 'Quantidade']}
                 labelFormatter={(label) => `Mês: ${label}`}
               />
               <Legend />
