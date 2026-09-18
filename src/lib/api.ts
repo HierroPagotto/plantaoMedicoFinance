@@ -118,6 +118,18 @@ class ApiClient {
         return response.data;
     }
 
+    async exportMyData() {
+        const response = await this.api.get('/auth/me/export');
+        return response.data;
+    }
+
+    async deleteMyAccount(email: string, password: string) {
+        const response = await this.api.delete('/auth/me', {
+            data: { email, password },
+        });
+        return response.data;
+    }
+
     async registerHospital(payload: {
         hospital: {
             name: string;
@@ -134,6 +146,7 @@ class ApiClient {
             password: string;
             phone?: string;
         };
+        accepted_terms?: boolean;
     }): Promise<LoginResponse> {
         const response = await this.api.post('/auth/hospital/register', payload);
         this.persistSession(response.data);

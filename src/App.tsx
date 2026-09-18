@@ -23,6 +23,8 @@ import AdminUsers from './pages/Admin/Users';
 import AdminHospitals from './pages/Admin/Hospitals';
 import AdminOpportunities from './pages/Admin/Opportunities';
 import LandingPage from './pages/LandingPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfUse from './pages/TermsOfUse';
 import HospitalDashboard from './pages/Hospital/Dashboard';
 import HospitalStaffPage from './pages/Hospital/Staff';
 import HospitalRegister from './pages/Hospital/Register';
@@ -53,6 +55,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfUse />} />
           <Route path="/login" element={<Login />} />
           <Route path="/logout" element={<Logout />} />
           <Route path="/register" element={<Register />} />

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import {
   Form,
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
 import { OTHER_SPECIALTY } from '@/types/doctor';
@@ -40,6 +41,9 @@ const formSchema = z
     profession: z.enum(['doctor', 'nurse', 'technician']),
     specialty: z.string().min(1, { message: 'Selecione uma especialidade' }),
     customSpecialty: z.string().optional(),
+    accepted_terms: z.literal(true, {
+      errorMap: () => ({ message: 'Aceite a Política de Privacidade e os Termos de Uso' }),
+    }),
   })
   .superRefine((data, ctx) => {
     if (data.specialty === OTHER_SPECIALTY) {
@@ -70,6 +74,7 @@ export function RegisterForm() {
       profession: 'doctor',
       specialty: '',
       customSpecialty: '',
+      accepted_terms: undefined as unknown as true,
     },
   });
 
@@ -93,6 +98,7 @@ export function RegisterForm() {
         council_type: suggestCouncilForSpecialty(data.profession, mainSpecialty),
         main_specialty: mainSpecialty,
         specialties: [mainSpecialty],
+        accepted_terms: true,
       });
 
       toast({
@@ -246,6 +252,34 @@ export function RegisterForm() {
             )}
           />
         )}
+
+        <FormField
+          control={form.control}
+          name="accepted_terms"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+              <FormControl>
+                <Checkbox
+                  checked={field.value === true}
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel className="font-normal text-sm">
+                  Li e aceito a{' '}
+                  <Link to="/privacy" className="underline text-primary" target="_blank">
+                    Política de Privacidade
+                  </Link>{' '}
+                  e os{' '}
+                  <Link to="/terms" className="underline text-primary" target="_blank">
+                    Termos de Uso
+                  </Link>
+                </FormLabel>
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? 'Cadastrando...' : 'Cadastrar'}

@@ -353,7 +353,16 @@ const LandingPage = () => {
                 <li>Sobre</li>
                 <li>Blog</li>
                 <li>Carreiras</li>
-                <li>Privacidade</li>
+                <li>
+                  <Link to="/privacy" className="hover:text-white">
+                    Privacidade
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:text-white">
+                    Termos de Uso
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

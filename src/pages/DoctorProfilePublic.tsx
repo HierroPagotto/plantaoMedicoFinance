@@ -8,8 +8,6 @@ import { toast } from "sonner";
 import { brazilianStates } from "@/types/doctor";
 import QRCode from "react-qr-code";
 import {
-  Mail,
-  Phone,
   MapPin,
   Calendar,
   Award,
@@ -194,14 +192,6 @@ export default function DoctorProfilePublic() {
                     <span>
                       {doctor.city}, {getStateName(doctor.state)}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone size={16} />
-                    <span>{doctor.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail size={16} />
-                    <span>{doctor.email}</span>
                   </div>
                 </div>
               </div>

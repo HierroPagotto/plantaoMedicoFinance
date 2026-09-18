@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
   FormControl,
@@ -28,6 +29,9 @@ const schema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha com pelo menos 6 caracteres'),
   phone: z.string().optional(),
+  accepted_terms: z.literal(true, {
+    errorMap: () => ({ message: 'Aceite a Política de Privacidade e os Termos de Uso' }),
+  }),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -51,6 +55,7 @@ const HospitalRegister = () => {
       email: '',
       password: '',
       phone: '',
+      accepted_terms: undefined as unknown as true,
     },
   });
 
@@ -73,6 +78,7 @@ const HospitalRegister = () => {
           password: data.password,
           phone: data.phone || undefined,
         },
+        accepted_terms: true,
       });
       toast({
         title: 'Hospital cadastrado',
@@ -247,6 +253,34 @@ const HospitalRegister = () => {
                     <Input {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="accepted_terms"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value === true}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="font-normal text-sm">
+                      Li e aceito a{' '}
+                      <Link to="/privacy" className="underline text-primary" target="_blank">
+                        Política de Privacidade
+                      </Link>{' '}
+                      e os{' '}
+                      <Link to="/terms" className="underline text-primary" target="_blank">
+                        Termos de Uso
+                      </Link>
+                    </FormLabel>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />

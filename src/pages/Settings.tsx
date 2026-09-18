@@ -425,6 +425,71 @@ const Settings = () => {
                   <p className="text-sm">Plantões registrados</p>
                   <p className="font-medium">{profile.shifts_count || 0}</p>
                 </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Privacidade (LGPD)</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        const data = await api.exportMyData();
+                        const blob = new Blob([JSON.stringify(data, null, 2)], {
+                          type: 'application/json',
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `medsinc-meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success('Dados exportados');
+                      } catch {
+                        toast.error('Não foi possível exportar seus dados');
+                      }
+                    }}
+                  >
+                    Exportar meus dados
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-full"
+                    onClick={async () => {
+                      const email = window.prompt(
+                        'Para excluir a conta, digite seu e-mail de cadastro:'
+                      );
+                      if (!email) return;
+                      const password = window.prompt('Digite sua senha para confirmar:');
+                      if (!password) return;
+                      if (
+                        !window.confirm(
+                          'Esta ação é irreversível. Todos os seus dados serão apagados. Continuar?'
+                        )
+                      ) {
+                        return;
+                      }
+                      try {
+                        await api.deleteMyAccount(email.trim(), password);
+                        toast.success('Conta excluída');
+                        await api.logout();
+                        navigate('/login', { replace: true });
+                      } catch (err: unknown) {
+                        const message =
+                          err && typeof err === 'object' && 'response' in err
+                            ? (err as { response?: { data?: { message?: string } } })
+                                .response?.data?.message
+                            : undefined;
+                        toast.error(message || 'Não foi possível excluir a conta');
+                      }
+                    }}
+                  >
+                    Excluir minha conta
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -433,9 +498,6 @@ const Settings = () => {
             <Button className="w-full" onClick={saveChanges} disabled={saving}>
               {saving ? "Salvando..." : "Salvar alterações"}
             </Button>
-            {/*<Button variant="destructive" className="w-full">
-              Excluir minha conta
-            </Button>*/}
           </div>
         </div>
       </div>
