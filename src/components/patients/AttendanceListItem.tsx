@@ -20,11 +20,11 @@ export function AttendanceListItem({
   onDelete,
 }: AttendanceListItemProps) {
   const isPrivate = attendance.kind === 'private';
-  const where = isPrivate
-    ? attendance.location
-    : [attendance.shift?.hospital_name, attendance.shift?.shift_type_label]
-      .filter(Boolean)
-      .join(' · ') || (attendance.shift ? null : 'Plantão removido');
+  const where = attendance.shift
+    ? [attendance.shift.hospital_name, attendance.shift.shift_type_label]
+        .filter(Boolean)
+        .join(' · ')
+    : attendance.location;
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-3 last:border-0 last:pb-0">

@@ -62,6 +62,8 @@ interface AttendanceFormDialogProps {
   onSaved: (attendance: Attendance) => void;
 }
 
+const NO_SHIFT = 'none';
+
 function shiftOptionLabel(shift: Shift) {
   const parts = [formatISODate(shift.date)];
   if (shift.hospital?.name) parts.push(shift.hospital.name);
@@ -85,7 +87,7 @@ export function AttendanceFormDialog({
 
   const [patientId, setPatientId] = useState<number | null>(null);
   const [kind, setKind] = useState<AttendanceKind>('shift');
-  const [shiftId, setShiftId] = useState<string>('');
+  const [shiftId, setShiftId] = useState<string>(NO_SHIFT);
   const [date, setDate] = useState(todayISO());
   const [attendanceNumber, setAttendanceNumber] = useState('');
   const [value, setValue] = useState('');
@@ -115,7 +117,7 @@ export function AttendanceFormDialog({
     if (attendance) {
       setPatientId(attendance.patient_id);
       setKind(attendance.kind);
-      setShiftId(attendance.shift_id ? String(attendance.shift_id) : '');
+      setShiftId(attendance.shift_id ? String(attendance.shift_id) : NO_SHIFT);
       setDate(attendance.date?.slice(0, 10) || todayISO());
       setAttendanceNumber(attendance.attendance_number || '');
       setValue(attendance.value != null ? formatNumberToCurrencyInput(Number(attendance.value)) : '');
@@ -125,7 +127,7 @@ export function AttendanceFormDialog({
     } else {
       setPatientId(defaults?.patientId ?? null);
       setKind(defaults?.kind ?? 'shift');
-      setShiftId(defaults?.shiftId ? String(defaults.shiftId) : '');
+      setShiftId(defaults?.shiftId ? String(defaults.shiftId) : NO_SHIFT);
       setDate(defaults?.date || todayISO());
       setAttendanceNumber('');
       setValue('');
@@ -167,10 +169,6 @@ export function AttendanceFormDialog({
       return;
     }
     let parsedValue: number | null = null;
-    if (kind === 'shift' && !shiftId) {
-      toast.error('Selecione o plantão do atendimento');
-      return;
-    }
     if (kind === 'private') {
       parsedValue = parseCurrencyInput(value);
       if (parsedValue == null) {
@@ -183,11 +181,11 @@ export function AttendanceFormDialog({
       patient_id: patientId,
       kind,
       date,
-      shift_id: kind === 'shift' ? Number(shiftId) : null,
+      shift_id: kind === 'shift' && shiftId !== NO_SHIFT ? Number(shiftId) : null,
       attendance_number: attendanceNumber.trim() || null,
       value: kind === 'private' ? parsedValue : null,
       payment_status: kind === 'private' ? paymentStatus : null,
-      location: kind === 'private' ? location.trim() || null : null,
+      location: kind === 'private' || shiftId === NO_SHIFT ? location.trim() || null : null,
       notes: notes.trim() || null,
     };
 
@@ -299,12 +297,13 @@ export function AttendanceFormDialog({
 
             {kind === 'shift' ? (
               <div className="space-y-2">
-                <Label>Plantão</Label>
+                <Label>Plantão (opcional)</Label>
                 <Select value={shiftId} onValueChange={setShiftId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o plantão" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={NO_SHIFT}>Sem plantão vinculado</SelectItem>
                     {shiftOptions.map((s) => (
                       <SelectItem key={s.id} value={String(s.id)}>
                         {shiftOptionLabel(s)}
@@ -312,11 +311,7 @@ export function AttendanceFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                {shifts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    Você ainda não tem plantões cadastrados.
-                  </p>
-                ) : !hasShiftsOnDate ? (
+                {shifts.length > 0 && !hasShiftsOnDate ? (
                   <p className="text-xs text-muted-foreground">
                     Nenhum plantão nesta data; mostrando todos.
                   </p>
@@ -346,17 +341,24 @@ export function AttendanceFormDialog({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Local (opcional)</Label>
-                  <Input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Ex.: Consultório Centro, Clínica X"
-                    maxLength={150}
-                  />
-                </div>
               </>
             )}
+
+            {kind === 'private' || shiftId === NO_SHIFT ? (
+              <div className="space-y-2">
+                <Label>Local (opcional)</Label>
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder={
+                    kind === 'private'
+                      ? 'Ex.: Consultório Centro, Clínica X'
+                      : 'Ex.: Hospital X - P.A.'
+                  }
+                  maxLength={150}
+                />
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label>Nº de atendimento (opcional)</Label>
