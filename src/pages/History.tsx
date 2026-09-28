@@ -49,6 +49,8 @@ import {
 } from '@/components/ui/select';
 import api from '@/lib/api';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
+import { ShiftAttendancesSection } from '@/components/shifts/ShiftAttendancesSection';
+import { shiftTypeLabel } from '@/types/patient';
 import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
 import { isMarketplaceShift } from '@/components/shifts/shift-utils';
 import { PageLoading } from '@/components/ui/PageLoading';
@@ -79,6 +81,7 @@ interface Shift {
   opportunity_id?: number | null;
   expenses_total?: number;
   net_value?: number;
+  shift_type?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -435,6 +438,10 @@ const History = () => {
                   <p>{selectedShift.specialty}</p>
                 </div>
                 <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Tipo de plantão</h4>
+                  <p>{shiftTypeLabel(selectedShift.shift_type) || 'Não informado'}</p>
+                </div>
+                <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Valor</h4>
                   <p className="font-medium">{formatCurrency(selectedShift.value)}</p>
                 </div>
@@ -477,6 +484,8 @@ const History = () => {
                   );
                 }}
               />
+
+              <ShiftAttendancesSection shiftId={selectedShift.id} shiftDate={selectedShift.date} />
 
               <DialogFooter className="gap-2 sm:gap-0">
                 {selectedShift.status === 'scheduled' && (

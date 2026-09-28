@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import api from '@/lib/api';
 import { isMarketplaceShift } from '@/components/shifts/shift-utils';
+import { shiftTypeLabel } from '@/types/patient';
 
 export type ShiftStatus = 'scheduled' | 'completed' | 'paid' | 'canceled';
 
@@ -49,6 +50,8 @@ export interface ShiftProps {
   /** 'manual' | 'marketplace' — plantões do marketplace não são editáveis pelo médico */
   source?: string;
   opportunityId?: number | null;
+  shiftType?: string | null;
+  attendancesCount?: number;
 }
 
 interface ShiftCardProps {
@@ -75,6 +78,7 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
   const fromMarketplace = isMarketplaceShift(shift);
   const canEdit = !fromMarketplace && Boolean(onEdit);
   const canDelete = !fromMarketplace;
+  const typeLabel = shiftTypeLabel(shift.shiftType);
 
   const updateShiftStatus = async (id: string, newStatus: ShiftStatus) => {
     try {
@@ -234,8 +238,18 @@ export function ShiftCard({ shift, compact = false, onStatusChange, onShowDetail
                 )}
               </span>
             )}
+            {!compact && (shift.attendancesCount ?? 0) > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {shift.attendancesCount} atendimento{shift.attendancesCount === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {typeLabel && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {typeLabel}
+              </Badge>
+            )}
             {fromMarketplace && (
               <Badge variant="secondary" className="text-xs font-normal">
                 Marketplace

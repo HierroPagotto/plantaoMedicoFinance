@@ -54,6 +54,9 @@ export interface Shift {
   expenses?: ShiftExpense[];
   expenses_total?: number;
   net_value?: number;
+  shift_type?: string | null;
+  shift_type_label?: string | null;
+  attendances_count?: number;
   created_at: string;
   updated_at: string;
 }

@@ -14,6 +14,8 @@ import type { Shift } from '@/types/shift';
 import type { ShiftProps } from '@/components/shifts/ShiftCard';
 import { isMarketplaceShift } from '@/components/shifts/shift-utils';
 import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
+import { ShiftAttendancesSection } from '@/components/shifts/ShiftAttendancesSection';
+import { monthlyPrivateRevenue, shiftTypeLabel, type AttendanceSummary } from '@/types/patient';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
 import {
   Dialog,
@@ -50,6 +52,8 @@ function mapApiShiftToProps(shift: Shift): ShiftProps {
     status: shift.status,
     source: shift.source,
     opportunityId: shift.opportunity_id ?? null,
+    shiftType: shift.shift_type ?? null,
+    attendancesCount: Number(shift.attendances_count || 0),
   };
 }
 
@@ -73,6 +77,9 @@ const Dashboard = () => {
   const [selectedShift, setSelectedShift] = useState<ShiftProps | null>(null);
   const [editShift, setEditShift] = useState<ShiftProps | null>(null);
   const [personalMonthlyExpenses, setPersonalMonthlyExpenses] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
+  const [privateMonthlyRevenue, setPrivateMonthlyRevenue] = useState<number[]>(
     () => Array(12).fill(0)
   );
   const navigate = useNavigate();
@@ -139,6 +146,18 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    const fetchPrivateRevenue = async () => {
+      try {
+        const data = (await api.getAttendanceSummary(new Date().getFullYear())) as AttendanceSummary;
+        setPrivateMonthlyRevenue(monthlyPrivateRevenue(data));
+      } catch {
+        setPrivateMonthlyRevenue(Array(12).fill(0));
+      }
+    };
+    fetchPrivateRevenue();
+  }, []);
+
+  useEffect(() => {
     const fetchStats = async () => {
       try {
         const data = await api.getDashboard();
@@ -196,7 +215,7 @@ const Dashboard = () => {
         <StatCard
           title="Ganhos mensais"
           value={formatCurrency(stats.monthly_earnings)}
-          description="Valor previsto neste mês"
+          description="Plantões + consultas particulares"
           icon={<DollarSign />}
           trend={getTrend(stats.monthly_earnings, stats.previous_month_earnings)}
         />
@@ -345,6 +364,7 @@ const Dashboard = () => {
               shift.date.getFullYear() === new Date().getFullYear()
             )}
             extraMonthlyExpenses={personalMonthlyExpenses}
+            extraMonthlyRevenue={privateMonthlyRevenue}
           />
         </div>
         <div className="md:col-span-2">
@@ -393,6 +413,10 @@ const Dashboard = () => {
                   <p>{selectedShift.specialty}</p>
                 </div>
                 <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Tipo de plantão</h4>
+                  <p>{shiftTypeLabel(selectedShift.shiftType) || 'Não informado'}</p>
+                </div>
+                <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Valor</h4>
                   <p className="font-medium">{selectedShift.value}</p>
                 </div>
@@ -434,6 +458,17 @@ const Dashboard = () => {
                     )
                   );
                 }}
+              />
+              <ShiftAttendancesSection
+                shiftId={selectedShift.id}
+                shiftDate={selectedShift.date}
+                onCountChange={(count) =>
+                  setShifts((prev) =>
+                    prev.map((s) =>
+                      String(s.id) === selectedShift.id ? { ...s, attendances_count: count } : s
+                    )
+                  )
+                }
               />
             </div>
           )}

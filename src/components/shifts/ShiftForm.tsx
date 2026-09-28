@@ -37,6 +37,9 @@ import { api } from '@/lib/api';
 import { formatNumberToCurrencyInput, parseCurrencyInput } from '@/lib/currency';
 import { useNavigate } from 'react-router-dom';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { SHIFT_TYPE_OPTIONS } from '@/types/patient';
+
+const NO_SHIFT_TYPE = 'none';
 
 const specialties = [
   'Cardiologia',
@@ -60,6 +63,7 @@ const formSchema = z.object({
   endTime: z.string().min(1, { message: "O horário de término é obrigatório" }),
   value: z.string().min(1, { message: "O valor do plantão é obrigatório" }),
   specialty: z.string().min(1, { message: "A especialidade é obrigatória" }),
+  shiftType: z.string().default(NO_SHIFT_TYPE),
   hospital_id: z.string().min(1, { message: "O hospital ou clínica é obrigatório" }),
   paymentDate: z.date({
     required_error: "A data prevista para pagamento é obrigatória",
@@ -96,6 +100,8 @@ interface ShiftFormProps {
     value?: string | number;
     valueNumber?: number;
     specialty?: string;
+    shift_type?: string | null;
+    shiftType?: string | null;
     hospital_id?: string | number;
     payment_date?: string | Date | null;
     paymentDate?: string | Date | null;
@@ -154,6 +160,7 @@ export function ShiftForm({
               ? initialData.value.replace(/^R\$\s?/, '')
               : '',
         specialty: initialData.specialty || '',
+        shiftType: initialData.shift_type || initialData.shiftType || NO_SHIFT_TYPE,
         hospital_id: initialData.hospital_id ? String(initialData.hospital_id) : '',
         multipleDates: false,
         selectedDates: undefined,
@@ -169,6 +176,7 @@ export function ShiftForm({
         endTime: '',
         value: '',
         specialty: '',
+        shiftType: NO_SHIFT_TYPE,
         hospital_id: '',
         multipleDates: false,
         selectedDates: [],
@@ -185,6 +193,7 @@ export function ShiftForm({
         hospital_id: string;
         value: number;
         specialty: string;
+        shift_type: string | null;
         payment_date: string;
         date?: string;
         end_date?: string;
@@ -195,6 +204,7 @@ export function ShiftForm({
         hospital_id: data.hospital_id,
         value: parseCurrencyInput(data.value) ?? 0,
         specialty: data.specialty,
+        shift_type: data.shiftType && data.shiftType !== NO_SHIFT_TYPE ? data.shiftType : null,
         payment_date: format(data.paymentDate, 'yyyy-MM-dd'),
       };
 
@@ -552,6 +562,33 @@ export function ShiftForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="shiftType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de plantão</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={NO_SHIFT_TYPE}>Não informado</SelectItem>
+                      {SHIFT_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Ex.: Pronto Atendimento (P.A.), Centro Cirúrgico</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

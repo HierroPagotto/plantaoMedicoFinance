@@ -11,6 +11,8 @@ import Shifts from "./pages/Shifts";
 import NewShift from "./pages/NewShift";
 import Finance from "./pages/Finance";
 import Expenses from "./pages/Expenses";
+import Patients from "./pages/Patients";
+import Attendances from "./pages/Attendances";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import DoctorRegistration from "./pages/DoctorRegistration";
@@ -68,6 +70,9 @@ const App = () => (
           <Route path="/shifts/new" element={<ProtectedRoute><NewShift /></ProtectedRoute>} />
           <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
           <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+          <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+          <Route path="/patients/:id" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+          <Route path="/attendances" element={<ProtectedRoute><Attendances /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/doctor-registration" element={<ProtectedRoute><DoctorRegistration /></ProtectedRoute>} />

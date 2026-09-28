@@ -26,7 +26,17 @@ interface FinancialChartProps {
     expensesTotal?: number;
   }>;
   extraMonthlyExpenses?: number[];
+  extraMonthlyRevenue?: number[];
 }
+
+type ChartRow = {
+  month: string;
+  ganhos: number;
+  ganhosPlantao: number;
+  particulares: number;
+  gastos: number;
+  plantoes: number;
+};
 
 function parseValue(value: string | number): number {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -34,10 +44,12 @@ function parseValue(value: string | number): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function FinancialChart({ shifts, extraMonthlyExpenses }: FinancialChartProps) {
-  const [data, setData] = useState<
-    Array<{ month: string; ganhos: number; gastos: number; plantoes: number }>
-  >([]);
+export function FinancialChart({
+  shifts,
+  extraMonthlyExpenses,
+  extraMonthlyRevenue,
+}: FinancialChartProps) {
+  const [data, setData] = useState<ChartRow[]>([]);
   const [chartType, setChartType] = useState<ChartType>('compare');
 
   useEffect(() => {
@@ -76,19 +88,23 @@ export function FinancialChart({ shifts, extraMonthlyExpenses }: FinancialChartP
     });
 
     const currentYear = new Date().getFullYear();
-    const fullData = [];
+    const fullData: ChartRow[] = [];
     for (let month = 0; month < 12; month++) {
       const key = `${currentYear}-${month}`;
       const personal = extraMonthlyExpenses?.[month] ?? 0;
+      const particulares = extraMonthlyRevenue?.[month] ?? 0;
+      const ganhosPlantao = monthlyMap[key]?.ganhos || 0;
       fullData.push({
         month: months[month],
-        ganhos: monthlyMap[key]?.ganhos || 0,
+        ganhos: ganhosPlantao + particulares,
+        ganhosPlantao,
+        particulares,
         gastos: (monthlyMap[key]?.gastos || 0) + personal,
         plantoes: monthlyMap[key]?.plantoes || 0,
       });
     }
     setData(fullData);
-  }, [shifts, extraMonthlyExpenses]);
+  }, [shifts, extraMonthlyExpenses, extraMonthlyRevenue]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -154,13 +170,37 @@ export function FinancialChart({ shifts, extraMonthlyExpenses }: FinancialChartP
                 labelFormatter={(label) => `Mês: ${label}`}
               />
               <Legend />
-              {(chartType === 'compare' || chartType === 'revenue') && (
+              {chartType === 'compare' && (
                 <Area
                   type="monotone"
                   dataKey="ganhos"
                   name="Ganhos"
                   stroke="#6EE7B7"
                   fill="#6ee7b720"
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }}
+                />
+              )}
+              {chartType === 'revenue' && (
+                <Area
+                  type="monotone"
+                  dataKey="ganhosPlantao"
+                  name="Plantões"
+                  stackId="revenue"
+                  stroke="#6EE7B7"
+                  fill="#6ee7b740"
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }}
+                />
+              )}
+              {chartType === 'revenue' && (
+                <Area
+                  type="monotone"
+                  dataKey="particulares"
+                  name="Consultas particulares"
+                  stackId="revenue"
+                  stroke="#3B82F6"
+                  fill="#3b82f640"
                   strokeWidth={2}
                   activeDot={{ r: 8 }}
                 />

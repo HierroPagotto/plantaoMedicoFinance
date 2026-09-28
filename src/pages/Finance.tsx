@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Shift } from '@/types/shift';
 import type { ExpenseSummaryBreakdown } from '@/types/expense';
+import { monthlyPrivateRevenue, type AttendanceSummary } from '@/types/patient';
 import { PageLoading } from '@/components/ui/PageLoading';
 import { ExpenseBreakdownCharts } from '@/components/expenses/ExpenseBreakdownCharts';
 
@@ -20,6 +21,8 @@ const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "
 interface MonthlyData {
   month: number;
   received: number;
+  shift_received?: number;
+  private_revenue?: number;
   expected: number;
   expenses_total: number;
   net: number;
@@ -31,6 +34,8 @@ interface FinancialData {
   monthly_data: MonthlyData[];
   annual_totals: {
     total_received: number;
+    total_shift_received?: number;
+    total_private_revenue?: number;
     total_expected: number;
     total_expenses: number;
     total_net: number;
@@ -58,6 +63,21 @@ const Finance = () => {
   );
   const [expenseSummary, setExpenseSummary] = useState<ExpenseSummaryBreakdown | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [privateMonthlyRevenue, setPrivateMonthlyRevenue] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
+
+  useEffect(() => {
+    const fetchPrivateRevenue = async () => {
+      try {
+        const data = (await api.getAttendanceSummary(new Date().getFullYear())) as AttendanceSummary;
+        setPrivateMonthlyRevenue(monthlyPrivateRevenue(data));
+      } catch {
+        setPrivateMonthlyRevenue(Array(12).fill(0));
+      }
+    };
+    fetchPrivateRevenue();
+  }, []);
 
   useEffect(() => {
     const fetchShifts = async () => {
@@ -152,7 +172,9 @@ const Finance = () => {
     total_expenses = 0,
     total_net = total_expected - total_expenses,
     total_shifts,
+    total_private_revenue = 0,
   } = financialData.annual_totals;
+  const totalShiftExpected = total_expected - total_private_revenue;
 
   return (
     <AppShell>
@@ -182,7 +204,9 @@ const Finance = () => {
               {formatCurrency(total_expected)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Ano de {financialData.year}
+              {total_private_revenue > 0
+                ? `Inclui ${formatCurrency(total_private_revenue)} de consultas particulares`
+                : `Ano de ${financialData.year}`}
             </p>
           </CardContent>
         </Card>
@@ -229,7 +253,11 @@ const Finance = () => {
       </div>
 
       <div className="mb-6">
-        <FinancialChart shifts={shifts} extraMonthlyExpenses={personalMonthlyExpenses} />
+        <FinancialChart
+          shifts={shifts}
+          extraMonthlyExpenses={personalMonthlyExpenses}
+          extraMonthlyRevenue={privateMonthlyRevenue}
+        />
       </div>
 
       <div className="mb-6">
@@ -259,6 +287,9 @@ const Finance = () => {
                     Ganhos
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    Consultas particulares
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                     Gastos
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
@@ -274,16 +305,21 @@ const Finance = () => {
                   const expenses = Number(monthData.expenses_total || 0);
                   const expected = Number(monthData.expected || 0);
                   const net = monthData.net != null ? Number(monthData.net) : expected - expenses;
+                  const privateRevenue = Number(monthData.private_revenue || 0);
+                  const shiftExpected = expected - privateRevenue;
                   return (
                     <tr key={monthData.month}>
                       <td className="px-4 py-3 text-sm">{months[monthData.month - 1]}</td>
                       <td className="px-4 py-3 text-sm">{monthData.shifts}</td>
                       <td className="px-4 py-3 text-sm font-medium">{formatCurrency(expected)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        {privateRevenue > 0 ? formatCurrency(privateRevenue) : '-'}
+                      </td>
                       <td className="px-4 py-3 text-sm">{formatCurrency(expenses)}</td>
                       <td className="px-4 py-3 text-sm font-medium">{formatCurrency(net)}</td>
                       <td className="px-4 py-3 text-sm">
                         {monthData.shifts > 0
-                          ? formatCurrency(expected / monthData.shifts)
+                          ? formatCurrency(shiftExpected / monthData.shifts)
                           : '-'}
                       </td>
                     </tr>
@@ -295,11 +331,14 @@ const Finance = () => {
                   <td className="px-4 py-3 text-sm">Total</td>
                   <td className="px-4 py-3 text-sm">{total_shifts}</td>
                   <td className="px-4 py-3 text-sm font-medium">{formatCurrency(total_expected)}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {total_private_revenue > 0 ? formatCurrency(total_private_revenue) : '-'}
+                  </td>
                   <td className="px-4 py-3 text-sm">{formatCurrency(total_expenses)}</td>
                   <td className="px-4 py-3 text-sm font-medium">{formatCurrency(total_net)}</td>
                   <td className="px-4 py-3 text-sm">
                     {total_shifts > 0
-                      ? formatCurrency(total_expected / total_shifts)
+                      ? formatCurrency(totalShiftExpected / total_shifts)
                       : '-'}
                   </td>
                 </tr>

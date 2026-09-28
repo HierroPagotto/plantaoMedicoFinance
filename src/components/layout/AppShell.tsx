@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Store, ChevronDown, Wallet } from 'lucide-react';
+import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Store, ChevronDown, Wallet, Users, Stethoscope } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Header from './Header';
 
@@ -65,6 +65,8 @@ export const AppShell = ({ children }: AppShellProps) => {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Marketplace', href: '/marketplace', icon: Store },
     { name: 'Plantões', href: '/shifts', icon: Calendar },
+    { name: 'Atendimentos', href: '/attendances', icon: Stethoscope },
+    { name: 'Pacientes', href: '/patients', icon: Users },
     { name: 'Gastos', href: '/expenses', icon: Wallet },
     { name: 'Financeiro', href: '/finance', icon: DollarSign },
     { name: 'Histórico', href: '/history', icon: History },
@@ -78,8 +80,8 @@ export const AppShell = ({ children }: AppShellProps) => {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/marketplace') {
-      return location.pathname === path || location.pathname.startsWith('/marketplace/');
+    if (path === '/marketplace' || path === '/patients') {
+      return location.pathname === path || location.pathname.startsWith(`${path}/`);
     }
     return location.pathname === path;
   };

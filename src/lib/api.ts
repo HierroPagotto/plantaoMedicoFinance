@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import type { AttendancePayload, PatientPayload } from '@/types/patient';
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ?? 'https://api.medsinc.com.br/api';
@@ -384,6 +385,69 @@ class ApiClient {
 
     async deleteExpense(expenseId: string | number) {
         const response = await this.api.delete(`/expenses/${expenseId}`);
+        return response.data;
+    }
+
+    async listPatients(params?: { search?: string; include_inactive?: boolean }) {
+        const response = await this.api.get('/patients/', {
+            params: {
+                search: params?.search || undefined,
+                include_inactive: params?.include_inactive ? '1' : undefined,
+            },
+        });
+        return response.data;
+    }
+
+    async getPatient(patientId: string | number) {
+        const response = await this.api.get(`/patients/${patientId}`);
+        return response.data;
+    }
+
+    async createPatient(data: PatientPayload) {
+        const response = await this.api.post('/patients/', data);
+        return response.data;
+    }
+
+    async updatePatient(patientId: string | number, data: Partial<PatientPayload> & { active?: boolean }) {
+        const response = await this.api.put(`/patients/${patientId}`, data);
+        return response.data;
+    }
+
+    async deletePatient(patientId: string | number) {
+        const response = await this.api.delete(`/patients/${patientId}`);
+        return response.data;
+    }
+
+    async listAttendances(params?: {
+        patient_id?: number;
+        shift_id?: number;
+        kind?: 'shift' | 'private';
+        start_date?: string;
+        end_date?: string;
+    }) {
+        const response = await this.api.get('/patients/attendances', { params });
+        return response.data;
+    }
+
+    async createAttendance(data: AttendancePayload) {
+        const response = await this.api.post('/patients/attendances', data);
+        return response.data;
+    }
+
+    async updateAttendance(attendanceId: string | number, data: Partial<AttendancePayload>) {
+        const response = await this.api.put(`/patients/attendances/${attendanceId}`, data);
+        return response.data;
+    }
+
+    async deleteAttendance(attendanceId: string | number) {
+        const response = await this.api.delete(`/patients/attendances/${attendanceId}`);
+        return response.data;
+    }
+
+    async getAttendanceSummary(year?: number) {
+        const response = await this.api.get('/patients/attendances/summary', {
+            params: { year },
+        });
         return response.data;
     }
 

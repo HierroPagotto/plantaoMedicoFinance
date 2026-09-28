@@ -28,6 +28,8 @@ import { isAxiosError } from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
 import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
+import { ShiftAttendancesSection } from '@/components/shifts/ShiftAttendancesSection';
+import { shiftTypeLabel } from '@/types/patient';
 import { Badge } from '@/components/ui/badge';
 import { Info, CheckCircle } from 'lucide-react';
 import type { Shift } from '@/types/shift';
@@ -66,6 +68,8 @@ type ApiShift = {
   opportunity_id?: number | null;
   expenses_total?: number;
   net_value?: number;
+  shift_type?: string | null;
+  attendances_count?: number;
   created_at: string;
   updated_at: string;
 };
@@ -141,6 +145,8 @@ const Shifts = () => {
           status: shift.status,
           source: shift.source || 'manual',
           opportunityId: shift.opportunity_id ?? null,
+          shiftType: shift.shift_type ?? null,
+          attendancesCount: Number(shift.attendances_count || 0),
         }));
         setShifts(formattedShifts);
       } catch (err) {
@@ -421,6 +427,10 @@ const Shifts = () => {
                   <p>{selectedShift.specialty}</p>
                 </div>
                 <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Tipo de plantão</h4>
+                  <p>{shiftTypeLabel(selectedShift.shiftType) || 'Não informado'}</p>
+                </div>
+                <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Valor</h4>
                   <p className="font-medium">{selectedShift.value}</p>
                 </div>
@@ -454,6 +464,17 @@ const Shifts = () => {
                     )
                   );
                 }}
+              />
+              <ShiftAttendancesSection
+                shiftId={selectedShift.id}
+                shiftDate={selectedShift.date}
+                onCountChange={(count) =>
+                  setShifts((prev) =>
+                    prev.map((s) =>
+                      s.id === selectedShift.id ? { ...s, attendancesCount: count } : s
+                    )
+                  )
+                }
               />
             </div>
           )}
