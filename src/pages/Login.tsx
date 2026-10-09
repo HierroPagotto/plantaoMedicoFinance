@@ -17,8 +17,8 @@ const Login = () => {
           <div className="bg-white/95 rounded-2xl shadow-xl border border-white/20 p-10">
             <div className="h-full flex flex-col justify-center">
               <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold mb-6">Plantão Médico</h1>
-                <p className="text-lg text-gray-600">Controle sua agenda e finanças com facilidade</p>
+                <h1 className="text-4xl font-bold mb-6">MedSinc</h1>
+                <p className="text-lg text-gray-600">Agenda, pacientes, finanças tudo em um só lugar</p>
               </div>
               <div className="w-full max-w-md mx-auto">
                 <LoginForm />

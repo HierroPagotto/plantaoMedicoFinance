@@ -14,7 +14,7 @@ const Register = () => {
             >
                 <div className="bg-white/95 rounded-2xl shadow-xl p-8">
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold mb-4">Plantão Médico</h1>
+                        <h1 className="text-3xl font-bold mb-4">MedSinc</h1>
                         <p className="text-muted-foreground text-sm">Crie sua conta</p>
                     </div>
                     <RegisterForm />
