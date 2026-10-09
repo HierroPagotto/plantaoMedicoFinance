@@ -120,6 +120,20 @@ export function monthlyPrivateRevenue(summary: AttendanceSummary | null | undefi
   return monthly;
 }
 
+export function monthlyAttendanceCounts(
+  summary: AttendanceSummary | null | undefined
+): { shift: number[]; private: number[] } {
+  const shift = Array(12).fill(0) as number[];
+  const privateCounts = Array(12).fill(0) as number[];
+  for (const row of summary?.monthly ?? []) {
+    if (row.month >= 1 && row.month <= 12) {
+      shift[row.month - 1] = Number(row.shift_count) || 0;
+      privateCounts[row.month - 1] = Number(row.private_count) || 0;
+    }
+  }
+  return { shift, private: privateCounts };
+}
+
 export function shiftTypeLabel(value?: string | null): string | null {
   if (!value) return null;
   return SHIFT_TYPE_OPTIONS.find((opt) => opt.value === value)?.label ?? value;

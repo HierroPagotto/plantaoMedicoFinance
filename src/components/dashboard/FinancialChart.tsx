@@ -15,7 +15,7 @@ import {
 
 const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-type ChartType = 'compare' | 'revenue' | 'expenses' | 'shifts';
+type ChartType = 'compare' | 'revenue' | 'expenses' | 'shifts' | 'attendances';
 
 interface FinancialChartProps {
   shifts?: Array<{
@@ -27,6 +27,8 @@ interface FinancialChartProps {
   }>;
   extraMonthlyExpenses?: number[];
   extraMonthlyRevenue?: number[];
+  monthlyShiftAttendances?: number[];
+  monthlyPrivateAttendances?: number[];
 }
 
 type ChartRow = {
@@ -36,6 +38,8 @@ type ChartRow = {
   particulares: number;
   gastos: number;
   plantoes: number;
+  atendimentosPlantao: number;
+  atendimentosParticular: number;
 };
 
 function parseValue(value: string | number): number {
@@ -48,6 +52,8 @@ export function FinancialChart({
   shifts,
   extraMonthlyExpenses,
   extraMonthlyRevenue,
+  monthlyShiftAttendances,
+  monthlyPrivateAttendances,
 }: FinancialChartProps) {
   const [data, setData] = useState<ChartRow[]>([]);
   const [chartType, setChartType] = useState<ChartType>('compare');
@@ -101,10 +107,18 @@ export function FinancialChart({
         particulares,
         gastos: (monthlyMap[key]?.gastos || 0) + personal,
         plantoes: monthlyMap[key]?.plantoes || 0,
+        atendimentosPlantao: monthlyShiftAttendances?.[month] ?? 0,
+        atendimentosParticular: monthlyPrivateAttendances?.[month] ?? 0,
       });
     }
     setData(fullData);
-  }, [shifts, extraMonthlyExpenses, extraMonthlyRevenue]);
+  }, [
+    shifts,
+    extraMonthlyExpenses,
+    extraMonthlyRevenue,
+    monthlyShiftAttendances,
+    monthlyPrivateAttendances,
+  ]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -152,6 +166,13 @@ export function FinancialChart({
             type="button"
           >
             Plantões
+          </button>
+          <button
+            className={tabClass(chartType === 'attendances')}
+            onClick={() => setChartType('attendances')}
+            type="button"
+          >
+            Atendimentos
           </button>
         </div>
       </CardHeader>
@@ -238,6 +259,38 @@ export function FinancialChart({
                 dataKey="plantoes"
                 name="Quantidade de plantões"
                 fill="#8B5CF6"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+
+        {chartType === 'attendances' && (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={data}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <XAxis dataKey="month" />
+              <YAxis allowDecimals={false} />
+              <Tooltip
+                formatter={(value: number, name: string) => [`${value} atendimentos`, name]}
+                labelFormatter={(label) => `Mês: ${label}`}
+              />
+              <Legend />
+              <Bar
+                dataKey="atendimentosPlantao"
+                name="Em plantão"
+                stackId="attendances"
+                fill="#8B5CF6"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar
+                dataKey="atendimentosParticular"
+                name="Consulta particular"
+                stackId="attendances"
+                fill="#3B82F6"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>

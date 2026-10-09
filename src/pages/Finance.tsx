@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Shift } from '@/types/shift';
 import type { ExpenseSummaryBreakdown } from '@/types/expense';
-import { monthlyPrivateRevenue, type AttendanceSummary } from '@/types/patient';
+import { monthlyAttendanceCounts, monthlyPrivateRevenue, type AttendanceSummary } from '@/types/patient';
 import { PageLoading } from '@/components/ui/PageLoading';
 import { ExpenseBreakdownCharts } from '@/components/expenses/ExpenseBreakdownCharts';
 
@@ -66,14 +66,25 @@ const Finance = () => {
   const [privateMonthlyRevenue, setPrivateMonthlyRevenue] = useState<number[]>(
     () => Array(12).fill(0)
   );
+  const [monthlyShiftAttendances, setMonthlyShiftAttendances] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
+  const [monthlyPrivateAttendances, setMonthlyPrivateAttendances] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
 
   useEffect(() => {
     const fetchPrivateRevenue = async () => {
       try {
         const data = (await api.getAttendanceSummary(new Date().getFullYear())) as AttendanceSummary;
+        const counts = monthlyAttendanceCounts(data);
         setPrivateMonthlyRevenue(monthlyPrivateRevenue(data));
+        setMonthlyShiftAttendances(counts.shift);
+        setMonthlyPrivateAttendances(counts.private);
       } catch {
         setPrivateMonthlyRevenue(Array(12).fill(0));
+        setMonthlyShiftAttendances(Array(12).fill(0));
+        setMonthlyPrivateAttendances(Array(12).fill(0));
       }
     };
     fetchPrivateRevenue();
@@ -257,6 +268,8 @@ const Finance = () => {
           shifts={shifts}
           extraMonthlyExpenses={personalMonthlyExpenses}
           extraMonthlyRevenue={privateMonthlyRevenue}
+          monthlyShiftAttendances={monthlyShiftAttendances}
+          monthlyPrivateAttendances={monthlyPrivateAttendances}
         />
       </div>
 

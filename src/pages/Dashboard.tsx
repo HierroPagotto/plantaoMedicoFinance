@@ -15,7 +15,7 @@ import type { ShiftProps } from '@/components/shifts/ShiftCard';
 import { isMarketplaceShift } from '@/components/shifts/shift-utils';
 import { ShiftExpensesSection } from '@/components/shifts/ShiftExpensesSection';
 import { ShiftAttendancesSection } from '@/components/shifts/ShiftAttendancesSection';
-import { monthlyPrivateRevenue, shiftTypeLabel, type AttendanceSummary } from '@/types/patient';
+import { monthlyAttendanceCounts, monthlyPrivateRevenue, shiftTypeLabel, type AttendanceSummary } from '@/types/patient';
 import { ShiftForm } from '@/components/shifts/ShiftForm';
 import {
   Dialog,
@@ -80,6 +80,12 @@ const Dashboard = () => {
     () => Array(12).fill(0)
   );
   const [privateMonthlyRevenue, setPrivateMonthlyRevenue] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
+  const [monthlyShiftAttendances, setMonthlyShiftAttendances] = useState<number[]>(
+    () => Array(12).fill(0)
+  );
+  const [monthlyPrivateAttendances, setMonthlyPrivateAttendances] = useState<number[]>(
     () => Array(12).fill(0)
   );
   const navigate = useNavigate();
@@ -149,9 +155,14 @@ const Dashboard = () => {
     const fetchPrivateRevenue = async () => {
       try {
         const data = (await api.getAttendanceSummary(new Date().getFullYear())) as AttendanceSummary;
+        const counts = monthlyAttendanceCounts(data);
         setPrivateMonthlyRevenue(monthlyPrivateRevenue(data));
+        setMonthlyShiftAttendances(counts.shift);
+        setMonthlyPrivateAttendances(counts.private);
       } catch {
         setPrivateMonthlyRevenue(Array(12).fill(0));
+        setMonthlyShiftAttendances(Array(12).fill(0));
+        setMonthlyPrivateAttendances(Array(12).fill(0));
       }
     };
     fetchPrivateRevenue();
@@ -365,6 +376,8 @@ const Dashboard = () => {
             )}
             extraMonthlyExpenses={personalMonthlyExpenses}
             extraMonthlyRevenue={privateMonthlyRevenue}
+            monthlyShiftAttendances={monthlyShiftAttendances}
+            monthlyPrivateAttendances={monthlyPrivateAttendances}
           />
         </div>
         <div className="md:col-span-2">
