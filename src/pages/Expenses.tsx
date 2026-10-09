@@ -78,6 +78,56 @@ function todayISO() {
   return `${y}-${m}-${day}`;
 }
 
+function parseInstallmentCount(raw: string): number | null {
+  if (!/^\d+$/.test(raw.trim())) return null;
+  const count = Number(raw);
+  if (count < 1 || count > 36) return null;
+  return count;
+}
+
+function addMonths(iso: string, monthsToAdd: number): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1 + monthsToAdd;
+  const day = Number(match[3]);
+  const targetYear = year + Math.floor(monthIndex / 12);
+  const targetMonth = ((monthIndex % 12) + 12) % 12;
+  const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+  return new Date(targetYear, targetMonth, Math.min(day, lastDay), 12);
+}
+
+function formatMonthYear(value: Date) {
+  const month = value
+    .toLocaleDateString('pt-BR', { month: 'short' })
+    .replace('.', '');
+  return `${month}/${value.getFullYear()}`;
+}
+
+function InstallmentPreview({
+  installments,
+  amount,
+  expenseDate,
+}: {
+  installments: string;
+  amount: string;
+  expenseDate: string;
+}) {
+  const count = parseInstallmentCount(installments);
+  const parsedAmount = parseCurrencyInput(amount);
+  if (count == null || count < 2 || parsedAmount == null) return null;
+  const first = addMonths(expenseDate, 0);
+  const last = addMonths(expenseDate, count - 1);
+  if (!first || !last) return null;
+  return (
+    <p className="text-sm text-muted-foreground">
+      {count} × {formatCurrency(parsedAmount)} = {formatCurrency(parsedAmount * count)}
+      {' · '}
+      {formatMonthYear(first)} a {formatMonthYear(last)}
+    </p>
+  );
+}
+
 const Expenses = () => {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -96,6 +146,7 @@ const Expenses = () => {
   const [expenseDate, setExpenseDate] = useState(todayISO());
   const [description, setDescription] = useState('');
   const [recurrence, setRecurrence] = useState<ExpenseRecurrence>('none');
+  const [installments, setInstallments] = useState('1');
   const [paymentMethodId, setPaymentMethodId] = useState<string>('none');
   const [saving, setSaving] = useState(false);
 
@@ -158,6 +209,7 @@ const Expenses = () => {
     setExpenseDate(todayISO());
     setDescription('');
     setRecurrence('none');
+    setInstallments('1');
     setPaymentMethodId('none');
     setFormOpen(true);
   };
@@ -187,6 +239,16 @@ const Expenses = () => {
       return;
     }
 
+    const installmentCount = editing ? 1 : parseInstallmentCount(installments) ?? 0;
+    if (!editing && installmentCount < 1) {
+      toast.error('Informe de 1 a 36 parcelas');
+      return;
+    }
+    if (!editing && installmentCount > 1 && recurrence !== 'none') {
+      toast.error('Parcelas e recorrência não podem ser usadas juntas');
+      return;
+    }
+
     const payload = {
       category,
       amount: parsedAmount,
@@ -206,11 +268,14 @@ const Expenses = () => {
         await api.createExpense({
           ...payload,
           description: description.trim() || undefined,
+          installments: installmentCount ?? 1,
         });
         toast.success(
-          recurrence !== 'none'
-            ? 'Gasto adicionado e recorrências geradas'
-            : 'Gasto adicionado'
+          installmentCount && installmentCount > 1
+            ? `${installmentCount} parcelas adicionadas`
+            : recurrence !== 'none'
+              ? 'Gasto adicionado e recorrências geradas'
+              : 'Gasto adicionado'
         );
       }
       setFormOpen(false);
@@ -267,6 +332,12 @@ const Expenses = () => {
       setSavingMethod(false);
     }
   };
+
+  const installmentCount = parseInstallmentCount(installments);
+  const splitInstallments = !editing && installmentCount != null && installmentCount > 1;
+  const recurrenceLocked =
+    splitInstallments ||
+    Boolean(editing?.installment_count && editing.installment_count > 1);
 
   return (
     <AppShell>
@@ -368,6 +439,9 @@ const Expenses = () => {
                               {expense.payment_method_name}
                             </Badge>
                           )}
+                          {isPersonal && expense.installment_label && (
+                            <Badge variant="outline">{expense.installment_label}</Badge>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {formatDate(expense.expense_date)}
@@ -439,7 +513,7 @@ const Expenses = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Valor</Label>
+              <Label>{splitInstallments ? 'Valor de cada parcela' : 'Valor'}</Label>
               <CurrencyInput
                 value={amount}
                 onValueChange={setAmount}
@@ -447,18 +521,48 @@ const Expenses = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Data</Label>
+              <Label>{splitInstallments ? 'Data da 1ª parcela' : 'Data'}</Label>
               <Input
                 type="date"
                 value={expenseDate}
                 onChange={(e) => setExpenseDate(e.target.value)}
               />
             </div>
+            {!editing && (
+              <div className="space-y-2">
+                <Label>Parcelas</Label>
+                <Input
+                  inputMode="numeric"
+                  value={installments}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    setInstallments(next);
+                    if (Number(next) > 1) setRecurrence('none');
+                  }}
+                  placeholder="1"
+                />
+                <InstallmentPreview
+                  installments={installments}
+                  amount={amount}
+                  expenseDate={expenseDate}
+                />
+              </div>
+            )}
+            {editing?.installment_number && editing.installment_count ? (
+              <p className="text-sm text-muted-foreground">
+                Parcela {editing.installment_number} de {editing.installment_count}
+              </p>
+            ) : null}
             <div className="space-y-2">
               <Label>Recorrência de cobrança</Label>
               <Select
                 value={recurrence}
-                onValueChange={(v) => setRecurrence(v as ExpenseRecurrence)}
+                disabled={recurrenceLocked}
+                onValueChange={(v) => {
+                  const next = v as ExpenseRecurrence;
+                  setRecurrence(next);
+                  if (next !== 'none') setInstallments('1');
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -471,6 +575,11 @@ const Expenses = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {recurrenceLocked && (
+                <p className="text-sm text-muted-foreground">
+                  Parcelas definidas não usam recorrência.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Onde é cobrado</Label>

@@ -363,6 +363,7 @@ class ApiClient {
         description?: string;
         recurrence?: string;
         payment_method_id?: number | null;
+        installments?: number;
     }) {
         const response = await this.api.post('/expenses/', data);
         return response.data;

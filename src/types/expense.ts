@@ -46,6 +46,10 @@ export interface UnifiedExpense {
   recurrence_group_id?: string | null;
   is_recurrence_origin?: boolean;
   recurrence_active?: boolean;
+  installment_number?: number | null;
+  installment_count?: number | null;
+  installment_group_id?: string | null;
+  installment_label?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
