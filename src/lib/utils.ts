@@ -16,6 +16,7 @@ type DoctorApiProfile = {
   crm?: string | null
   crm_state?: string | null
   graduation_year?: number | string | null
+  graduation_university?: string | null
   city?: string | null
   phone?: string | null
   email?: string | null
@@ -53,6 +54,7 @@ export type DoctorRegistrationFormValues = {
     crm: string
     crmState: string
     graduationYear: number
+    graduationUniversity: string
     city: string
     phone: string
     email: string
@@ -105,6 +107,7 @@ export type DoctorApiUpdatePayload = {
   crm: string | null
   crm_state: string | null
   graduation_year: number
+  graduation_university: string
   city: string
   phone: string
   email: string
@@ -186,6 +189,7 @@ export function transformApiToForm(
       crm: data.council_number || data.crm || "",
       crmState: data.council_state || data.crm_state || "",
       graduationYear: Number(data.graduation_year) || new Date().getFullYear(),
+      graduationUniversity: data.graduation_university || "",
       city: data.city || "",
       phone: data.phone || "",
       email: data.email || "",
@@ -278,6 +282,7 @@ export function transformFormToApi(
     crm: councilType === "CRM" ? values.personalInfo.crm : null,
     crm_state: councilType === "CRM" ? values.personalInfo.crmState : null,
     graduation_year: values.personalInfo.graduationYear,
+    graduation_university: values.personalInfo.graduationUniversity.trim(),
     city: values.personalInfo.city,
     phone: values.personalInfo.phone,
     email: values.personalInfo.email,

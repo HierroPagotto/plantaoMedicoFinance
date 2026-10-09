@@ -9,6 +9,7 @@ export const createDemoProfile = () => {
       crm: "123456",
       crmState: "SP",
       graduationYear: 2010, // Corrigido para number
+      graduationUniversity: "Universidade de São Paulo",
       city: "São Paulo",
       phone: "(11) 98765-4321",
       email: "joao.silva@exemplo.com.br"

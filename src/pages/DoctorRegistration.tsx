@@ -60,6 +60,7 @@ const PROFILE_FIELD_ORDER = [
   "personalInfo.crm",
   "personalInfo.crmState",
   "personalInfo.graduationYear",
+  "personalInfo.graduationUniversity",
   "personalInfo.city",
   "personalInfo.phone",
   "personalInfo.email",
@@ -117,6 +118,11 @@ const formSchema = z.object({
     crm: z.string().regex(councilRegex, { message: "Número de conselho inválido" }),
     crmState: z.string().min(2, { message: "Selecione o estado do conselho" }),
     graduationYear: z.number().int().min(1950).max(new Date().getFullYear()),
+    graduationUniversity: z
+      .string()
+      .trim()
+      .min(3, { message: "Informe a universidade (mín. 3 caracteres)" })
+      .max(150, { message: "Universidade deve ter no máximo 150 caracteres" }),
     city: z.string().min(2, { message: "Cidade é obrigatória" }),
     phone: z.string().regex(phoneRegex, { message: "Telefone inválido" }),
     email: z.string().email({ message: "E-mail inválido" }),
@@ -199,6 +205,7 @@ export default function DoctorRegistration() {
         crm: "",
         crmState: "",
         graduationYear: new Date().getFullYear(),
+        graduationUniversity: "",
         city: "",
         phone: "",
         email: "",
@@ -504,6 +511,23 @@ export default function DoctorRegistration() {
                 {form.formState.errors.personalInfo?.graduationYear && (
                   <p className="text-sm text-destructive mt-1">
                     {form.formState.errors.personalInfo.graduationYear.message}
+                  </p>
+                )}
+              </div>
+
+              <div data-field="personalInfo.graduationUniversity">
+                <Label htmlFor="graduationUniversity">Universidade de formação *</Label>
+                <Input
+                  id="graduationUniversity"
+                  maxLength={150}
+                  placeholder="Ex.: Universidade Federal do Rio Grande do Sul"
+                  {...form.register("personalInfo.graduationUniversity")}
+                  aria-invalid={fieldHasError("personalInfo.graduationUniversity")}
+                  className={cn(fieldHasError("personalInfo.graduationUniversity") && inputErrorClass)}
+                />
+                {form.formState.errors.personalInfo?.graduationUniversity && (
+                  <p className="text-sm text-destructive mt-1">
+                    {form.formState.errors.personalInfo.graduationUniversity.message}
                   </p>
                 )}
               </div>

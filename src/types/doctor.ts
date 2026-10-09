@@ -6,6 +6,7 @@ export interface Doctor {
     crm: string;
     crmState: string;
     graduationYear: number;
+    graduationUniversity: string;
     city: string;
     phone: string;
     email: string;

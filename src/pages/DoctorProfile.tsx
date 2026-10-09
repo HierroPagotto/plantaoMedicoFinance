@@ -42,6 +42,7 @@ interface UserData {
   crm_state: string | null;
   email: string;
   graduation_year: string | null;
+  graduation_university?: string | null;
   has_driver_license: boolean;
   has_ehr_experience: boolean;
   id: string;
@@ -430,6 +431,10 @@ export default function DoctorProfile() {
                   <div>
                     <h3 className="font-medium mb-1">Ano de formação</h3>
                     <p>{doctor.graduation_year || "Não informado"}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-1">Universidade de formação</h3>
+                    <p>{doctor.graduation_university || "Não informado"}</p>
                   </div>
                   <div>
                     <h3 className="font-medium mb-1">
