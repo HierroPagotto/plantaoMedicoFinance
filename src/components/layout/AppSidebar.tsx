@@ -1,4 +1,4 @@
-import { Home, Calendar, DollarSign, History, ChevronLeft, LogOut, Settings, Moon, Sun } from 'lucide-react';
+import { Home, Calendar, DollarSign, ChevronLeft, LogOut, Settings, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -39,7 +39,7 @@ export const AppSidebar = ({ isOpen, setIsOpen }: AppSidebarProps) => {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Plantões', href: '/shifts', icon: Calendar },
     { name: 'Financeiro', href: '/finance', icon: DollarSign },
-    { name: 'Histórico', href: '/history', icon: History },
+    // { name: 'Histórico', href: '/history', icon: History },
     { name: 'Configurações', href: '/settings', icon: Settings }
   ];
 

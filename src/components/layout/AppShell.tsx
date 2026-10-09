@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Home, Calendar, DollarSign, History, Settings, LogOut, Store, ChevronDown, Wallet, Users, Stethoscope } from 'lucide-react';
+import { User, Home, Calendar, DollarSign, Settings, LogOut, Store, ChevronDown, Wallet, Users, Stethoscope } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Header from './Header';
 
@@ -69,7 +69,7 @@ export const AppShell = ({ children }: AppShellProps) => {
     { name: 'Pacientes', href: '/patients', icon: Users },
     { name: 'Gastos', href: '/expenses', icon: Wallet },
     { name: 'Financeiro', href: '/finance', icon: DollarSign },
-    { name: 'Histórico', href: '/history', icon: History },
+    // { name: 'Histórico', href: '/history', icon: History },
     { name: 'Configurações', href: '/settings', icon: Settings },
     { name: 'Perfil', href: '/doctor-profile', icon: User },
     ...(user.is_admin ? [
