@@ -16,6 +16,10 @@ export interface Patient {
   birth_date: string | null;
   age: number | null;
   health_plan: string | null;
+  phone?: string | null;
+  phone_display?: string | null;
+  cpf?: string | null;
+  cpf_display?: string | null;
   is_private: boolean;
   active: boolean;
   attendances_count?: number;
@@ -68,6 +72,8 @@ export interface PatientPayload {
   name: string;
   birth_date?: string | null;
   health_plan?: string | null;
+  phone?: string | null;
+  cpf?: string | null;
 }
 
 export interface AttendanceSummary {

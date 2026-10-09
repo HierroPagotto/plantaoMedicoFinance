@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
+import { formatCpfInput, formatPhoneInput } from '@/lib/patient-contact';
 import type { Patient } from '@/types/patient';
 
 import { apiErrorMessage, todayISO } from './utils';
@@ -33,6 +34,8 @@ export function PatientFormDialog({
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [healthPlan, setHealthPlan] = useState('');
+  const [phone, setPhone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -40,6 +43,8 @@ export function PatientFormDialog({
     setName(patient?.name ?? '');
     setBirthDate(patient?.birth_date?.slice(0, 10) ?? '');
     setHealthPlan(patient?.health_plan ?? '');
+    setPhone(formatPhoneInput(patient?.phone ?? ''));
+    setCpf(formatCpfInput(patient?.cpf ?? ''));
   }, [open, patient]);
 
   const handleSave = async () => {
@@ -51,6 +56,8 @@ export function PatientFormDialog({
       name: name.trim(),
       birth_date: birthDate || null,
       health_plan: healthPlan.trim() || null,
+      phone: phone.trim() || null,
+      cpf: cpf.trim() || null,
     };
     try {
       setSaving(true);
@@ -73,7 +80,7 @@ export function PatientFormDialog({
         <DialogHeader>
           <DialogTitle>{patient ? 'Editar paciente' : 'Novo paciente'}</DialogTitle>
           <DialogDescription>
-            Apenas os dados da etiqueta. Evite registrar CPF, contato ou diagnóstico.
+            Telefone e CPF servem para contato e para localizar o paciente. Ficam visíveis só para você.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -103,6 +110,24 @@ export function PatientFormDialog({
               onChange={(e) => setHealthPlan(e.target.value)}
               placeholder="Ex.: Unimed, SUS... (vazio = particular)"
               maxLength={100}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Telefone (opcional)</Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+              placeholder="(11) 98888-7777"
+              inputMode="numeric"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>CPF (opcional)</Label>
+            <Input
+              value={cpf}
+              onChange={(e) => setCpf(formatCpfInput(e.target.value))}
+              placeholder="000.000.000-00"
+              inputMode="numeric"
             />
           </div>
         </div>

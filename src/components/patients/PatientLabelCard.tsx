@@ -51,6 +51,18 @@ export function PatientLabelCard({
         <span>{formatISODate(patient.birth_date)}</span>
         <span className="text-muted-foreground">Idade:</span>
         <span>{patient.age != null ? `${patient.age} anos` : '—'}</span>
+        {patient.phone_display || patient.phone ? (
+          <>
+            <span className="text-muted-foreground">Tel.:</span>
+            <span>{patient.phone_display || patient.phone}</span>
+          </>
+        ) : null}
+        {patient.cpf_display || patient.cpf ? (
+          <>
+            <span className="text-muted-foreground">CPF:</span>
+            <span>{patient.cpf_display || patient.cpf}</span>
+          </>
+        ) : null}
         <span className="text-muted-foreground">Convênio:</span>
         <span className="truncate">
           {patient.is_private ? (

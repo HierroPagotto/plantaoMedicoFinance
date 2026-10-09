@@ -191,7 +191,7 @@ const Patients = () => {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou convênio"
+              placeholder="Buscar por nome, convênio, telefone ou CPF"
               className="pl-9"
             />
           </div>

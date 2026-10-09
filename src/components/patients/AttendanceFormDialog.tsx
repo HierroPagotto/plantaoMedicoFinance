@@ -231,14 +231,14 @@ export function AttendanceFormDialog({
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Buscar por nome ou convênio..." />
+                      <CommandInput placeholder="Buscar por nome, convênio, telefone ou CPF..." />
                       <CommandList>
                         <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
                         <CommandGroup>
                           {patients.map((p) => (
                             <CommandItem
                               key={p.id}
-                              value={`${p.name} ${p.health_plan ?? ''} ${p.id}`}
+                              value={`${p.name} ${p.health_plan ?? ''} ${p.phone_display ?? ''} ${p.phone ?? ''} ${p.cpf_display ?? ''} ${p.cpf ?? ''} ${p.id}`}
                               onSelect={() => {
                                 setPatientId(p.id);
                                 setPatientPickerOpen(false);
