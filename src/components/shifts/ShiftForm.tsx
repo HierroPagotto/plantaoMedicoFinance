@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Clock, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +40,9 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { SHIFT_TYPE_OPTIONS } from '@/types/patient';
 
 const NO_SHIFT_TYPE = 'none';
+const PAYMENT_DAY_SHORTCUTS = [15, 20, 30];
+
+type PaymentMode = 'exact' | 'days';
 
 const specialties = [
   'Cardiologia',
@@ -65,9 +68,9 @@ const formSchema = z.object({
   specialty: z.string().min(1, { message: "A especialidade é obrigatória" }),
   shiftType: z.string().default(NO_SHIFT_TYPE),
   hospital_id: z.string().min(1, { message: "O hospital ou clínica é obrigatório" }),
-  paymentDate: z.date({
-    required_error: "A data prevista para pagamento é obrigatória",
-  }),
+  paymentMode: z.enum(['exact', 'days']).default('exact'),
+  paymentDate: z.date().optional(),
+  paymentDaysAfter: z.string().default('15'),
 
   multipleDates: z.boolean().default(false),
   shiftDate: z.date().optional(),
@@ -83,9 +86,70 @@ const formSchema = z.object({
 }, {
   message: "Selecione pelo menos uma data para o plantão",
   path: ["shiftDate"],
+}).superRefine((data, ctx) => {
+  if (data.paymentMode === 'days') {
+    const days = Number(data.paymentDaysAfter);
+    if (
+      String(data.paymentDaysAfter).trim() === '' ||
+      !Number.isInteger(days) ||
+      days < 0 ||
+      days > 365
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe de 0 a 365 dias",
+        path: ["paymentDaysAfter"],
+      });
+    }
+    return;
+  }
+  if (!data.paymentDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "A data prevista para pagamento é obrigatória",
+      path: ["paymentDate"],
+    });
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+function paymentModeClass(active: boolean) {
+  return `px-3 py-1 rounded-md text-sm font-medium transition-colors ${active ? 'bg-white shadow text-black' : 'text-muted-foreground hover:text-black'
+    }`;
+}
+
+function buildPaymentPreview(input: {
+  mode: PaymentMode;
+  daysRaw: string;
+  multiple: boolean;
+  shiftDate?: Date;
+  selectedDates?: Date[];
+}) {
+  if (input.mode !== 'days') return null;
+  const days = Number(input.daysRaw);
+  if (String(input.daysRaw).trim() === '' || !Number.isInteger(days) || days < 0 || days > 365) {
+    return null;
+  }
+
+  const bases = (input.multiple ? input.selectedDates ?? [] : input.shiftDate ? [input.shiftDate] : [])
+    .filter((date) => date instanceof Date && !Number.isNaN(date.getTime()))
+    .slice()
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  if (bases.length === 0) {
+    return `Cada plantão + ${days} dia${days === 1 ? '' : 's'}`;
+  }
+
+  const formatted = bases.map((date) => format(addDays(date, days), 'dd/MM/yyyy'));
+  if (formatted.length === 1) {
+    return `Pagamento em ${formatted[0]}`;
+  }
+  if (formatted.length <= 4) {
+    return `Cada plantão + ${days} dias: ${formatted.join(', ')}`;
+  }
+  return `Cada plantão + ${days} dias (${formatted.length} plantões)`;
+}
 
 interface ShiftFormProps {
   initialData?: {
@@ -164,6 +228,8 @@ export function ShiftForm({
         hospital_id: initialData.hospital_id ? String(initialData.hospital_id) : '',
         multipleDates: false,
         selectedDates: undefined,
+        paymentMode: 'exact',
+        paymentDaysAfter: '15',
         paymentDate: initialData.payment_date
           ? new Date(initialData.payment_date)
           : initialData.paymentDate
@@ -180,6 +246,8 @@ export function ShiftForm({
         hospital_id: '',
         multipleDates: false,
         selectedDates: [],
+        paymentMode: 'exact',
+        paymentDaysAfter: '15',
         paymentDate: undefined,
       },
   });
@@ -194,7 +262,8 @@ export function ShiftForm({
         value: number;
         specialty: string;
         shift_type: string | null;
-        payment_date: string;
+        payment_date?: string;
+        payment_days_after?: number;
         date?: string;
         end_date?: string;
         week_days?: string[];
@@ -205,8 +274,13 @@ export function ShiftForm({
         value: parseCurrencyInput(data.value) ?? 0,
         specialty: data.specialty,
         shift_type: data.shiftType && data.shiftType !== NO_SHIFT_TYPE ? data.shiftType : null,
-        payment_date: format(data.paymentDate, 'yyyy-MM-dd'),
       };
+
+      if (data.paymentMode === 'days') {
+        shiftData.payment_days_after = Number(data.paymentDaysAfter);
+      } else if (data.paymentDate) {
+        shiftData.payment_date = format(data.paymentDate, 'yyyy-MM-dd');
+      }
 
       if (data.multipleDates && data.selectedDates && data.selectedDates.length > 0) {
         shiftData.date = format(data.selectedDates[0], 'yyyy-MM-dd');
@@ -244,6 +318,16 @@ export function ShiftForm({
       setLoading(false);
     }
   };
+
+  const paymentMode = form.watch('paymentMode');
+  const paymentDaysAfter = form.watch('paymentDaysAfter');
+  const paymentPreview = buildPaymentPreview({
+    mode: paymentMode,
+    daysRaw: paymentDaysAfter,
+    multiple: form.watch('multipleDates'),
+    shiftDate: form.watch('shiftDate'),
+    selectedDates: form.watch('selectedDates'),
+  });
 
   return (
     <div className="space-y-6">
@@ -524,23 +608,23 @@ export function ShiftForm({
               }}
             />
 
-          <FormField
-            control={form.control}
-            name="value"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor do plantão (R$)</FormLabel>
-                <FormControl>
-                  <CurrencyInput
-                    placeholder="0,00"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="value"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor do plantão (R$)</FormLabel>
+                  <FormControl>
+                    <CurrencyInput
+                      placeholder="0,00"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -596,44 +680,115 @@ export function ShiftForm({
 
             <FormField
               control={form.control}
-              name="paymentDate"
+              name="paymentMode"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data prevista para pagamento</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: ptBR })
-                          ) : (
-                            <span>Selecione uma data</span>
-                          )}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                        locale={ptBR}
-                        className="p-3"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                <FormItem className="flex flex-col md:col-span-2">
+                  <FormLabel>Pagamento previsto</FormLabel>
+                  <FormControl>
+                    <div className="flex bg-muted rounded-md p-1 w-fit">
+                      <button
+                        type="button"
+                        className={paymentModeClass(field.value === 'exact')}
+                        onClick={() => field.onChange('exact')}
+                      >
+                        Dia exato
+                      </button>
+                      <button
+                        type="button"
+                        className={paymentModeClass(field.value === 'days')}
+                        onClick={() => field.onChange('days')}
+                      >
+                        Dias após o plantão
+                      </button>
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {paymentMode === 'exact' ? (
+              <FormField
+                control={form.control}
+                name="paymentDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col md:col-span-2">
+                    <FormLabel>Data prevista para pagamento</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: ptBR })
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          locale={ptBR}
+                          className="p-3"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <FormField
+                control={form.control}
+                name="paymentDaysAfter"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Dias após o plantão</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={365}
+                        inputMode="numeric"
+                        placeholder="15"
+                        {...field}
+                      />
+                    </FormControl>
+                    <div className="flex flex-wrap gap-2">
+                      {PAYMENT_DAY_SHORTCUTS.map((days) => (
+                        <Button
+                          key={days}
+                          type="button"
+                          size="sm"
+                          variant={field.value === String(days) ? 'default' : 'outline'}
+                          onClick={() => field.onChange(String(days))}
+                        >
+                          {days} dias
+                        </Button>
+                      ))}
+                    </div>
+                    <FormDescription>
+                      0 conta o pagamento no mesmo dia do plantão. Vale para um plantão ou para cada data da série.
+                    </FormDescription>
+                    {paymentPreview ? (
+                      <p className="text-sm text-foreground">{paymentPreview}</p>
+                    ) : null}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
 
           <Button
