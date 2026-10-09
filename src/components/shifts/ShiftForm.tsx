@@ -37,6 +37,13 @@ import { api } from '@/lib/api';
 import { formatNumberToCurrencyInput, parseCurrencyInput } from '@/lib/currency';
 import { useNavigate } from 'react-router-dom';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import {
+  SHIFT_MONTH_OPTIONS,
+  SHIFT_OCCURRENCE_OPTIONS,
+  SHIFT_WEEKDAY_OPTIONS,
+  expandShiftRule,
+  shiftRuleErrorMessage,
+} from '@/lib/shift-recurrence';
 import { SHIFT_TYPE_OPTIONS } from '@/types/patient';
 
 const NO_SHIFT_TYPE = 'none';
@@ -151,6 +158,41 @@ function buildPaymentPreview(input: {
   return `Cada plantão + ${days} dias (${formatted.length} plantões)`;
 }
 
+function toggleNumber(list: number[], value: number) {
+  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+}
+
+function RuleToggleGroup({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: { value: number; label: string }[];
+  selected: number[];
+  onToggle: (value: number) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <FormLabel>{label}</FormLabel>
+      <div className="flex flex-wrap gap-1">
+        {options.map((option) => (
+          <Button
+            key={option.value}
+            type="button"
+            size="sm"
+            variant={selected.includes(option.value) ? 'default' : 'outline'}
+            onClick={() => onToggle(option.value)}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface ShiftFormProps {
   initialData?: {
     id?: string | number;
@@ -200,6 +242,10 @@ export function ShiftForm({
 }: ShiftFormProps) {
   const [loading, setLoading] = useState(false);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [ruleYear, setRuleYear] = useState(() => new Date().getFullYear());
+  const [ruleMonths, setRuleMonths] = useState<number[]>([]);
+  const [ruleWeekdays, setRuleWeekdays] = useState<number[]>([]);
+  const [ruleOrdinals, setRuleOrdinals] = useState<number[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const shiftId = initialData?.id;
@@ -321,6 +367,35 @@ export function ShiftForm({
 
   const paymentMode = form.watch('paymentMode');
   const paymentDaysAfter = form.watch('paymentDaysAfter');
+  const ruleYearOptions = [
+    new Date().getFullYear() - 1,
+    new Date().getFullYear(),
+    new Date().getFullYear() + 1,
+    new Date().getFullYear() + 2,
+  ];
+
+  const applyShiftRule = () => {
+    const result = expandShiftRule({
+      year: ruleYear,
+      months: ruleMonths,
+      weekdays: ruleWeekdays,
+      occurrences: ruleOrdinals,
+    });
+    if (result.ok === false) {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível gerar as datas',
+        description: shiftRuleErrorMessage(result),
+      });
+      return;
+    }
+    form.setValue('selectedDates', result.dates, { shouldValidate: true });
+    toast({
+      title: `${result.dates.length} datas geradas`,
+      description: 'Remova as exceções na lista, se precisar.',
+    });
+  };
+
   const paymentPreview = buildPaymentPreview({
     mode: paymentMode,
     daysRaw: paymentDaysAfter,
@@ -450,6 +525,72 @@ export function ShiftForm({
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {mode === 'create' && (
+                    <div className="space-y-3 rounded-lg border p-3">
+                      <div>
+                        <p className="text-sm font-medium">Gerar por regra</p>
+                        <p className="text-xs text-muted-foreground">
+                          Ex.: todo sábado de março e abril, ou a 1ª e a 4ª terça. Gerar de novo substitui a lista.
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <FormLabel>Ano</FormLabel>
+                        <Select value={String(ruleYear)} onValueChange={(value) => setRuleYear(Number(value))}>
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ruleYearOptions.map((year) => (
+                              <SelectItem key={year} value={String(year)}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <RuleToggleGroup
+                        label="Meses"
+                        options={SHIFT_MONTH_OPTIONS}
+                        selected={ruleMonths}
+                        onToggle={(value) => setRuleMonths((current) => toggleNumber(current, value))}
+                      />
+                      <RuleToggleGroup
+                        label="Dias da semana"
+                        options={SHIFT_WEEKDAY_OPTIONS}
+                        selected={ruleWeekdays}
+                        onToggle={(value) => setRuleWeekdays((current) => toggleNumber(current, value))}
+                      />
+                      <div className="space-y-1">
+                        <FormLabel>Quais no mês</FormLabel>
+                        <div className="flex flex-wrap gap-1">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={ruleOrdinals.length === 0 ? 'default' : 'outline'}
+                            onClick={() => setRuleOrdinals([])}
+                          >
+                            Todas
+                          </Button>
+                          {SHIFT_OCCURRENCE_OPTIONS.map((ordinal) => (
+                            <Button
+                              key={ordinal}
+                              type="button"
+                              size="sm"
+                              variant={ruleOrdinals.includes(ordinal) ? 'default' : 'outline'}
+                              onClick={() =>
+                                setRuleOrdinals((current) => toggleNumber(current, ordinal))
+                              }
+                            >
+                              {ordinal}ª
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <Button type="button" variant="secondary" size="sm" onClick={applyShiftRule}>
+                        Gerar datas
+                      </Button>
+                    </div>
+                  )}
                   <FormField
                     control={form.control}
                     name="selectedDates"
